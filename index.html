@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Google Sheets - CSV Extractor</title>
+
+<!-- Papa Parse: CSV processing happens in the browser -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f7fb;
+    color: #202124;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+
+h1 {
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+
+.upload-box {
+    border: 2px dashed #aaa;
+    border-radius: 12px;
+    padding: 45px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: #fafafa;
+    transition: .2s;
+}
+
+.upload-box:hover {
+    border-color: #4285f4;
+    background: #f3f7ff;
+}
+
+.upload-box.dragover {
+    border-color: #4285f4;
+    background: #eaf2ff;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.btn {
+    border: none;
+    border-radius: 7px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 4px;
+    background: #4285f4;
+    color: white;
+}
+
+.btn:hover {
+    opacity: .9;
+}
+
+.btn.green {
+    background: #188038;
+}
+
+.btn.gray {
+    background: #5f6368;
+}
+
+.btn.orange {
+    background: #f29900;
+}
+
+.btn.red {
+    background: #d93025;
+}
+
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.search {
+    flex: 1;
+    min-width: 250px;
+    padding: 11px;
+    border: 1px solid #ccc;
+    border-radius: 7px;
+}
+
+.mapping {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+}
+
+.mapping-box {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.mapping-box strong {
+    display: block;
+    margin-bottom: 7px;
+}
+
+.mapping-box input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    margin-top: 15px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+}
+
+th {
+    background: #f1f3f4;
+    position: sticky;
+    top: 0;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 9px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.stats {
+    display: flex;
+    gap: 30px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.stat {
+    background: #f1f3f4;
+    padding: 12px 18px;
+    border-radius: 8px;
+}
+
+.status {
+    margin-top: 12px;
+    color: #555;
+}
+
+.pagination {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+@media(max-width: 800px) {
+    .mapping {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .container {
+        padding: 0 10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Google Sheets - CSV Extractor</h1>
+
+    <div class="subtitle">
+        Extract columns A, Y, L, C, R and AH from your CSV file
+    </div>
+
+    <!-- Upload -->
+    <div class="card">
+
+        <div id="uploadBox" class="upload-box">
+
+            <h2>Upload CSV File</h2>
+
+            <p>
+                Drag & drop your CSV file here
+                <br>
+                or click to select a file
+            </p>
+
+            <button class="btn" onclick="document.getElementById('fileInput').click()">
+                Select File
+            </button>
+
+            <input
+                type="file"
+                id="fileInput"
+                accept=".csv,.txt"
+            >
+
+        </div>
+
+        <div class="status" id="status">
+            No file selected
+        </div>
+
+    </div>
+
+
+    <!-- Column mapping -->
+    <div class="card">
+
+        <h2>Column Mapping</h2>
+
+        <p>
+            Enter source column numbers.
+            A = 1, Y = 25, L = 12, C = 3, R = 18, AH = 34
+        </p>
+
+        <div class="mapping">
+
+            <div class="mapping-box">
+                <strong>Output A</strong>
+                <input id="mapA" type="number" value="1" min="1">
+            </div>
+
+            <div class="mapping-box">
+                <strong>Output Y</strong>
+                <input id="mapY" type="number" value="25" min="1">
+            </div>
+
+            <div class="mapping-box">
+                <strong>Output L</strong>
+                <input id="mapL" type="number" value="12" min="1">
+            </div>
+
+            <div class="mapping-box">
+                <strong>Output C</strong>
+                <input id="mapC" type="number" value="3" min="1">
+            </div>
+
+            <div class="mapping-box">
+                <strong>Output R</strong>
+                <input id="mapR" type="number" value="18" min="1">
+            </div>
+
+            <div class="mapping-box">
+                <strong>Output AH</strong>
+                <input id="mapAH" type="number" value="34" min="1">
+            </div>
+
+        </div>
+
+        <button class="btn orange" onclick="extractData()">
+            Apply & Re-extract
+        </button>
+
+    </div>
+
+
+    <!-- Controls -->
+    <div class="card">
+
+        <div class="toolbar">
+
+            <input
+                type="text"
+                id="searchInput"
+                class="search"
+                placeholder="Search extracted data..."
+                oninput="renderTable()"
+            >
+
+            <label>
+                <input type="checkbox" id="includeHeaders">
+                Include headers on copy
+            </label>
+
+            <button class="btn green" onclick="copyData()">
+                Copy Data
+            </button>
+
+            <button class="btn" onclick="downloadCSV()">
+                Download CSV
+            </button>
+
+            <button class="btn gray" onclick="downloadExcel()">
+                Download Excel
+            </button>
+
+            <button class="btn red" onclick="clearAll()">
+                Clear
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- Table -->
+    <div class="card">
+
+        <h2>Extracted Data</h2>
+
+        <div class="stats">
+
+            <div class="stat">
+                <strong>Rows:</strong>
+                <span id="rowCount">0</span>
+            </div>
+
+            <div class="stat">
+                <strong>Columns:</strong>
+                6
+            </div>
+
+        </div>
+
+        <div class="table-wrapper">
+
+            <table id="dataTable">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>A</th>
+                        <th>Y</th>
+                        <th>L</th>
+                        <th>C</th>
+                        <th>R</th>
+                        <th>AH</th>
+                    </tr>
+                </thead>
+
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="7" style="text-align:center">
+                            Select a CSV file to view data
+                        </td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <div class="pagination">
+
+            <button class="btn gray" onclick="previousPage()">
+                Previous
+            </button>
+
+            <span id="pageInfo">
+                Page 1 of 1
+            </span>
+
+            <button class="btn gray" onclick="nextPage()">
+                Next
+            </button>
+
+            <select id="pageSize" onchange="changePageSize()">
+                <option value="25">25 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+                <option value="250">250 per page</option>
+                <option value="500">500 per page</option>
+            </select>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+let originalData = [];
+let extractedData = [];
+
+let currentPage = 1;
+let pageSize = 25;
+
+
+/* =========================
+   FILE UPLOAD
+========================= */
+
+const fileInput = document.getElementById("fileInput");
+const uploadBox = document.getElementById("uploadBox");
+
+fileInput.addEventListener("change", function(e) {
+
+    if (e.target.files.length > 0) {
+        processFile(e.target.files[0]);
+    }
+
+});
+
+
+/* Drag & Drop */
+
+uploadBox.addEventListener("dragover", function(e) {
+
+    e.preventDefault();
+
+    uploadBox.classList.add("dragover");
+
+});
+
+uploadBox.addEventListener("dragleave", function() {
+
+    uploadBox.classList.remove("dragover");
+
+});
+
+uploadBox.addEventListener("drop", function(e) {
+
+    e.preventDefault();
+
+    uploadBox.classList.remove("dragover");
+
+    if (e.dataTransfer.files.length > 0) {
+
+        processFile(e.dataTransfer.files[0]);
+
+    }
+
+});
+
+
+/* =========================
+   PROCESS CSV
+========================= */
+
+function processFile(file) {
+
+    document.getElementById("status").textContent =
+        "Processing: " + file.name;
+
+    Papa.parse(file, {
+
+        header: false,
+
+        skipEmptyLines: true,
+
+        worker: true,
+
+        complete: function(results) {
+
+            originalData = results.data;
+
+            extractData();
+
+            document.getElementById("status").textContent =
+                "Loaded: " + file.name +
+                " | Rows: " + originalData.length;
+
+        },
+
+        error: function(error) {
+
+            document.getElementById("status").textContent =
+                "Error: " + error.message;
+
+        }
+
+    });
+
+}
+
+
+/* =========================
+   EXTRACT COLUMNS
+========================= */
+
+function extractData() {
+
+    if (!originalData.length) {
+
+        extractedData = [];
+
+        renderTable();
+
+        return;
+
+    }
+
+    const mappings = [
+
+        Number(document.getElementById("mapA").value) - 1,
+
+        Number(document.getElementById("mapY").value) - 1,
+
+        Number(document.getElementById("mapL").value) - 1,
+
+        Number(document.getElementById("mapC").value) - 1,
+
+        Number(document.getElementById("mapR").value) - 1,
+
+        Number(document.getElementById("mapAH").value) - 1
+
+    ];
+
+
+    extractedData = originalData.map(row => {
+
+        return mappings.map(index => {
+
+            return row[index] !== undefined
+                ? row[index]
+                : "";
+
+        });
+
+    });
+
+
+    currentPage = 1;
+
+    renderTable();
+
+}
+
+
+/* =========================
+   SEARCH
+========================= */
+
+function getFilteredData() {
+
+    const search =
+        document.getElementById("searchInput")
+        .value
+        .toLowerCase()
+        .trim();
+
+    if (!search) {
+        return extractedData;
+    }
+
+    return extractedData.filter(row => {
+
+        return row.some(cell =>
+            String(cell)
+                .toLowerCase()
+                .includes(search)
+        );
+
+    });
+
+}
+
+
+/* =========================
+   RENDER TABLE
+========================= */
+
+function renderTable() {
+
+    const tbody =
+        document.getElementById("tableBody");
+
+    tbody.innerHTML = "";
+
+    const filtered = getFilteredData();
+
+    const totalPages =
+        Math.max(1, Math.ceil(filtered.length / pageSize));
+
+    if (currentPage > totalPages) {
+        currentPage = totalPages;
+    }
+
+    const start =
+        (currentPage - 1) * pageSize;
+
+    const end =
+        Math.min(start + pageSize, filtered.length);
+
+    const pageData =
+        filtered.slice(start, end);
+
+
+    if (pageData.length === 0) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:center">
+                    No data found
+                </td>
+            </tr>
+        `;
+
+    } else {
+
+        pageData.forEach((row, index) => {
+
+            const tr = document.createElement("tr");
+
+            const number =
+                document.createElement("td");
+
+            number.textContent = start + index + 1;
+
+            tr.appendChild(number);
+
+
+            row.forEach(cell => {
+
+                const td =
+                    document.createElement("td");
+
+                td.textContent = cell;
+
+                tr.appendChild(td);
+
+            });
+
+            tbody.appendChild(tr);
+
+        });
+
+    }
+
+
+    document.getElementById("rowCount").textContent =
+        filtered.length;
+
+    document.getElementById("pageInfo").textContent =
+        `Page ${currentPage} of ${totalPages}`;
+
+}
+
+
+/* =========================
+   COPY DATA
+========================= */
+
+async function copyData() {
+
+    const includeHeaders =
+        document.getElementById("includeHeaders").checked;
+
+    let rows = [];
+
+    if (includeHeaders) {
+
+        rows.push([
+            "A",
+            "Y",
+            "L",
+            "C",
+            "R",
+            "AH"
+        ]);
+
+    }
+
+    rows = rows.concat(extractedData);
+
+
+    const text = rows
+        .map(row =>
+            row.map(cell =>
+                String(cell)
+                    .replace(/\t/g, " ")
+                    .replace(/\r?\n/g, " ")
+            ).join("\t")
+        )
+        .join("\n");
+
+
+    try {
+
+        await navigator.clipboard.writeText(text);
+
+        alert("Data copied! Now paste it directly into Google Sheets.");
+
+    } catch (error) {
+
+        /* Fallback */
+
+        const textarea =
+            document.createElement("textarea");
+
+        textarea.value = text;
+
+        document.body.appendChild(textarea);
+
+        textarea.select();
+
+        document.execCommand("copy");
+
+        textarea.remove();
+
+        alert("Data copied!");
+
+    }
+
+}
+
+
+/* =========================
+   DOWNLOAD CSV
+========================= */
+
+function downloadCSV() {
+
+    if (!extractedData.length) {
+
+        alert("No data available.");
+
+        return;
+
+    }
+
+
+    let data = extractedData;
+
+    if (
+        document.getElementById("includeHeaders").checked
+    ) {
+
+        data = [
+            ["A", "Y", "L", "C", "R", "AH"],
+            ...extractedData
+        ];
+
+    }
+
+
+    const csv =
+        Papa.unparse(data);
+
+
+    downloadFile(
+        csv,
+        "extracted_data.csv",
+        "text/csv;charset=utf-8;"
+    );
+
+}
+
+
+/* =========================
+   EXCEL DOWNLOAD
+========================= */
+
+function downloadExcel() {
+
+    if (!extractedData.length) {
+
+        alert("No data available.");
+
+        return;
+
+    }
+
+
+    let data = extractedData;
+
+    if (
+        document.getElementById("includeHeaders").checked
+    ) {
+
+        data = [
+            ["A", "Y", "L", "C", "R", "AH"],
+            ...extractedData
+        ];
+
+    }
+
+
+    let html = `
+        <table>
+            ${data.map(row => `
+                <tr>
+                    ${row.map(cell =>
+                        `<td>${escapeHTML(cell)}</td>`
+                    ).join("")}
+                </tr>
+            `).join("")}
+        </table>
+    `;
+
+
+    const blob = new Blob(
+        [html],
+        {
+            type: "application/vnd.ms-excel"
+        }
+    );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const a =
+        document.createElement("a");
+
+    a.href = url;
+
+    a.download =
+        "extracted_data.xls";
+
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+/* =========================
+   GENERIC DOWNLOAD
+========================= */
+
+function downloadFile(
+    content,
+    filename,
+    type
+) {
+
+    const blob =
+        new Blob(
+            [content],
+            { type: type }
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const a =
+        document.createElement("a");
+
+    a.href = url;
+
+    a.download = filename;
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    a.remove();
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+/* =========================
+   ESCAPE HTML
+========================= */
+
+function escapeHTML(value) {
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+
+/* =========================
+   PAGINATION
+========================= */
+
+function previousPage() {
+
+    if (currentPage > 1) {
+
+        currentPage--;
+
+        renderTable();
+
+    }
+
+}
+
+
+function nextPage() {
+
+    const filtered =
+        getFilteredData();
+
+    const totalPages =
+        Math.max(
+            1,
+            Math.ceil(
+                filtered.length / pageSize
+            )
+        );
+
+
+    if (currentPage < totalPages) {
+
+        currentPage++;
+
+        renderTable();
+
+    }
+
+}
+
+
+function changePageSize() {
+
+    pageSize =
+        Number(
+            document.getElementById("pageSize").value
+        );
+
+    currentPage = 1;
+
+    renderTable();
+
+}
+
+
+/* =========================
+   CLEAR
+========================= */
+
+function clearAll() {
+
+    originalData = [];
+
+    extractedData = [];
+
+    fileInput.value = "";
+
+    document.getElementById("searchInput").value = "";
+
+    document.getElementById("status").textContent =
+        "No file selected";
+
+    currentPage = 1;
+
+    renderTable();
+
+}
+
+</script>
+
+</body>
+</html>
