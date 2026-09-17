@@ -1,40 +1,226 @@
-from pathlib import Path
-p=Path("/mnt/data/index_final_sheets_style.html")
-text=p.read_text(encoding="utf-8")
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Sheets - CSV Extractor</title>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f7f9fb;color:#172033}
+.top{height:61px;background:#fff;border-bottom:1px solid #dfe3e8;display:flex;align-items:center;padding:0 10px;gap:12px;white-space:nowrap;overflow:hidden}
+.logo{width:43px;height:43px;border-radius:8px;background:#08a45b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold}
+.title{font-size:18px;font-weight:600}.badge{background:#ddf7e9;color:#087b46;padding:6px 10px;border-radius:7px;font-size:13px}
+.nav{display:flex;gap:18px;font-size:14px;color:#344054}.nav span{cursor:pointer}
+.actions{margin-left:auto;display:flex;gap:8px}
+button{border:0;border-radius:6px;padding:10px 15px;font-weight:600;cursor:pointer;font-size:14px}
+.green{background:#08a45b;color:#fff}.orange{background:#e88916;color:#fff}.blue{background:#4f86e5;color:#fff}.light{background:#fff;border:1px solid #d5dbe2;color:#344054}
+button:disabled{opacity:.5;cursor:not-allowed}
+.formula{height:57px;background:#fff;border-bottom:1px solid #dfe3e8;display:flex;align-items:center;gap:10px;padding:0 10px;overflow:hidden}
+.search{height:32px;width:395px;border:1px solid #d5dbe2;border-radius:5px;padding:0 12px;font-size:14px}.divider{width:1px;height:25px;background:#d9dde2}.namebox{height:30px;width:68px;border:1px solid #d5dbe2;border-radius:5px;text-align:center;font-weight:bold}.fx{font-weight:bold;color:#777}.formulaText{height:32px;line-height:32px;flex:1;min-width:240px;border:1px solid #d5dbe2;border-radius:5px;padding:0 12px;font-family:monospace;font-size:14px}.extract{font-size:13px}.tag{padding:6px 8px;border-radius:5px;font-weight:bold;font-size:13px}.ta{background:#dbeafe;color:#2563eb}.ty{background:#ede9fe;color:#7c3aed}.tl{background:#fef3c7;color:#b45309}.tc{background:#d1fae5;color:#047857}.tr{background:#fee2e2;color:#dc2626}.tah{background:#cffafe;color:#0891b2}
+.mappingBar{display:none;height:44px;background:#eafff4;border-bottom:1px solid #ccebdd;align-items:center;gap:8px;padding:0 18px;white-space:nowrap;overflow:auto;font-size:14px}.mappingBar strong{margin-right:5px}.mapPill{background:#fff;border:1px solid #a9e1c4;color:#075d3b;padding:6px 10px;border-radius:5px;font-family:monospace}.custom{margin-left:auto;color:#075d3b;text-decoration:underline;cursor:pointer}
+main{padding:90px 0 40px}
+.upload{width:min(790px,90%);margin:auto;background:#fff;border:2px dashed #cbd5df;border-radius:20px;padding:46px;text-align:center;box-shadow:0 2px 10px #0000000d}
+.cloud{width:76px;height:76px;border-radius:50%;background:#d9fae9;color:#08a45b;margin:auto;display:flex;align-items:center;justify-content:center;font-size:38px}.upload h2{font-size:25px;margin:18px 0 10px}.upload p{color:#718096;line-height:1.55;font-size:16px;margin:0 auto 24px}.upload p b{color:#08a45b}.fileButtons{display:flex;justify-content:center;gap:14px}.select{font-size:17px;padding:14px 28px}.sample{font-size:17px;padding:14px 22px}.mappingPreview{border-top:1px solid #edf0f3;margin-top:28px;padding-top:20px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.mappingPreview div{border:1px solid #e1e5ea;border-radius:6px;padding:9px 3px;font-size:12px;color:#64748b}.mappingPreview b{display:block;font-size:14px;margin-bottom:5px}
+.status{width:min(790px,90%);margin:14px auto;text-align:center;color:#667085;font-size:14px}.progress{width:min(790px,90%);height:7px;background:#e5e7eb;border-radius:8px;margin:10px auto;display:none;overflow:hidden}.bar{height:100%;width:0;background:#08a45b}
+.data{display:none;width:100%;background:#fff}.tableTop{height:49px;border-bottom:1px solid #dfe3e8;display:flex;align-items:center;padding:0 18px;gap:10px}.fileChip{background:#effcf5;color:#087b46;border:1px solid #b9ead0;border-radius:18px;padding:7px 13px;font-size:14px;margin-left:auto}.tableSearch{height:32px;width:300px;border:1px solid #d5dbe2;border-radius:5px;padding:0 12px}.include{font-size:13px;white-space:nowrap}.tableWrap{overflow:auto;height:calc(100vh - 210px);min-height:350px}table{border-collapse:collapse;width:max-content;min-width:100%;table-layout:auto}th,td{border-right:1px solid #dfe3e8;border-bottom:1px solid #dfe3e8;padding:10px 14px;text-align:left;white-space:nowrap;font-size:14px;height:42px}th{background:#f8fafc;color:#1f2937;position:sticky;top:0;z-index:2;font-weight:500}th:first-child,td:first-child{position:sticky;left:0;z-index:3;background:#f8fafc;width:54px;text-align:center;color:#344054}.headMain{font-weight:600}.headSub{color:#667085;font-weight:400}.thTools{float:right;color:#98a2b3;font-size:16px;margin-left:18px}.bottom{height:58px;background:#fff;border-top:1px solid #dfe3e8;display:flex;align-items:center;padding:0 18px;gap:18px}.bottom .spacer{flex:1}.bottom button{padding:8px 13px}.pageBtn{border:1px solid #d9dee5;background:#fff;color:#667085}.count{color:#667085;font-size:14px}.pageInfo{color:#667085;font-size:14px}.empty{padding:50px;text-align:center;color:#667085}
+@media(max-width:1100px){.nav{display:none}.actions{margin-left:auto}.formula{gap:6px}.formulaText{display:none}.extract{display:none}}
+@media(max-width:700px){.title{font-size:15px}.badge{display:none}.actions button:not(.green){display:none}.search{width:45%}.top{gap:7px}main{padding-top:50px}.upload{padding:30px 16px}.fileButtons{flex-direction:column}.mappingPreview{grid-template-columns:repeat(2,1fr)}.tableTop{padding:0 8px}.tableSearch{width:180px}.bottom{padding:0 8px;gap:7px}.bottom .spacer{display:none}}
+</style>
+</head>
+<body>
 
-text=text.replace(
-"extracted=original.map(row=>map.map(i=>row[i]??''));",
-"// The first CSV row contains column headers and must not appear as data.\n  const dataRows = original.length > 0 ? original.slice(1) : [];\n  extracted=dataRows.map(row=>map.map(i=>row[i]??''));",
-1)
+<header class="top">
+  <div class="logo">▦</div>
+  <div class="title">Google Sheets - CSV Extractor</div>
+  <div class="badge">Columns A, Y, L, C, R, AH</div>
+  <div class="nav">
+    <span>📁 File</span><span>☷ Column Mapper</span><span onclick="copyData()">📋 Copy Data Only</span>
+    <span onclick="downloadCSV()">⬇ Export CSV</span><span onclick="downloadExcel()">▣ Export Excel</span><span onclick="loadSample()">🛠 Sample Data</span>
+  </div>
+  <div class="actions">
+    <button class="green" onclick="openFile()">☁ Upload File</button>
+    <button class="orange" onclick="copyData()">▣ Copy Data (No Headers)</button>
+    <button class="blue" onclick="downloadCSV()">⬇ Download</button>
+  </div>
+</header>
 
-# For ZIPs, remove header row from every CSV after the first one.
-old="""const r=Papa.parse(text,{header:false,skipEmptyLines:true});
-    combined=combined.concat(r.data||[]);setProgress(10+((i+1)/files.length)*85);"""
-new="""const r=Papa.parse(text,{header:false,skipEmptyLines:true});
+<div class="formula">
+  <input class="search" id="search" placeholder="⌕  Search extracted data..." oninput="searchChanged()">
+  <div class="divider"></div><input class="namebox" value="A1" readonly><span class="fx">ƒx</span>
+  <div class="formulaText" id="formula">Select a cell or upload a file to view data</div>
+  <div class="divider"></div>
+  <label style="white-space:nowrap;font-size:13px"><input type="checkbox" id="headers"> Include headers on copy</label>
+  <span class="extract">Extracted:</span><span class="tag ta">A</span><span class="tag ty">Y</span><span class="tag tl">L</span><span class="tag tc">C</span><span class="tag tr">R</span><span class="tag tah">AH</span>
+</div>
+
+<div class="mappingBar" id="mappingBar">
+  <strong>▦ Column Mapping Active:</strong>
+  <span class="mapPill" id="mA"></span><span class="mapPill" id="mY"></span><span class="mapPill" id="mL"></span><span class="mapPill" id="mC"></span><span class="mapPill" id="mR"></span><span class="mapPill" id="mAH"></span>
+  <span class="custom">⚙ Customize Column Mapping</span>
+</div>
+
+<main id="home">
+<section class="upload">
+  <div class="cloud">☁</div>
+  <h2>Upload CSV or ZIP File</h2>
+  <p>Drag and drop your <b>.csv</b> or <b>.zip</b> archive (containing CSV file(s)) to extract columns <b>A, Y, L, C, R, AH</b> into Google Sheet format.</p>
+  <div class="fileButtons">
+    <button class="green select" onclick="openFile()">▣ Select File</button>
+    <button class="light sample" onclick="loadSample()">🛠 Load Sample Data</button>
+  </div>
+  <div class="mappingPreview">
+    <div><b style="color:#2563eb">Col A</b>1st Col / A</div><div><b style="color:#7c3aed">Col Y</b>25th Col / Y</div><div><b style="color:#b45309">Col L</b>12th Col / L</div><div><b style="color:#047857">Col C</b>3rd Col / C</div><div><b style="color:#dc2626">Col R</b>18th Col / R</div><div><b style="color:#0891b2">Col AH</b>34th Col / AH</div>
+  </div>
+</section>
+<input id="file" type="file" accept=".csv,.txt,.zip" hidden>
+<div class="progress" id="progress"><div class="bar" id="bar"></div></div>
+<div class="status" id="status">No file selected</div>
+</main>
+
+<section class="data" id="data">
+  <div class="tableTop">
+    <input class="tableSearch" id="tableSearch" placeholder="⌕ Search extracted data..." oninput="searchChanged()">
+    <label class="include"><input type="checkbox" id="headers2" onchange="document.getElementById('headers').checked=this.checked"> Include headers on copy</label>
+    <div class="fileChip" id="fileChip">✓ file</div>
+  </div>
+  <div class="tableWrap">
+    <table>
+      <thead><tr id="headRow"><th>#</th><th>A</th><th>Y</th><th>L</th><th>C</th><th>R</th><th>AH</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="bottom">
+    <span class="count">Showing <b id="shown">0</b> of <b id="totalRows">0</b> rows</span>
+    <span class="count">Per Page:</span>
+    <select id="size" onchange="changeSize()"><option>50</option><option>100</option><option>25</option><option>250</option><option>500</option></select>
+    <div class="spacer"></div>
+    <button class="pageBtn" onclick="prev()">‹</button><span class="pageInfo" id="page">Page 1 of 1</span><button class="pageBtn" onclick="next()">›</button>
+    <button class="orange" onclick="copyData()">▣ Copy Data (No Headers)</button>
+    <button class="green" onclick="downloadCSV()">▣ Download CSV</button>
+    <button class="green" onclick="downloadExcel()">▣ Download Excel</button>
+  </div>
+</section>
+
+<script>
+let original=[], extracted=[], currentPage=1, pageSize=50, sourceName='';
+const fileInput=document.getElementById('file'), uploadHome=document.getElementById('home');
+
+function openFile(){fileInput.click()}
+fileInput.addEventListener('change',e=>{if(e.target.files[0])processFile(e.target.files[0])});
+uploadHome.addEventListener('dragover',e=>{e.preventDefault()});
+uploadHome.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0])});
+
+async function processFile(file){
+  sourceName=file.name; original=[]; extracted=[]; currentPage=1; setStatus('Reading '+file.name+' ...');
+  try{
+    if(file.name.toLowerCase().endsWith('.zip')) await processZip(file); else await parseCsv(file,'CSV');
+  }catch(e){console.error(e);setStatus('Error: '+e.message)}
+}
+function parseCsv(input,label){
+  return new Promise((resolve,reject)=>{
+    Papa.parse(input,{header:false,skipEmptyLines:true,worker:true,complete:r=>{
+      original=r.data||[];extract();setStatus(label+' loaded successfully | Data rows: '+extracted.length);resolve();
+    },error:reject});
+  });
+}
+async function processZip(file){
+  showProgress(10);setStatus('Opening ZIP file...');
+  const zip=await JSZip.loadAsync(file);
+  const files=Object.values(zip.files).filter(x=>!x.dir&&/\.(csv|txt)$/i.test(x.name));
+  if(!files.length)throw new Error('No CSV file found inside this ZIP.');
+  let combined=[];
+  for(let i=0;i<files.length;i++){
+    setStatus('Reading '+files[i].name+' ('+(i+1)+'/'+files.length+')');
+    const text=await files[i].async('string');
+    const r=Papa.parse(text,{header:false,skipEmptyLines:true});
     const csvRows=r.data||[];
     // Keep only the first CSV header; skip the header row of every CSV.
     if(i===0 && csvRows.length) original=[csvRows[0]];
     combined=combined.concat(csvRows.slice(1));
-    setProgress(10+((i+1)/files.length)*85);"""
-if old not in text:
-    print("ZIP block not found")
-else:
-    text=text.replace(old,new,1)
-
-old2="original=combined;extract();setStatus('ZIP processed successfully | '+files.length+' CSV file(s) | Rows: '+original.length);"
-new2="original=[...(original.length?original:[]),...combined];extract();setStatus('ZIP processed successfully | '+files.length+' CSV file(s) | Data rows: '+extracted.length);"
-if old2 not in text:
-    print("ZIP assignment not found")
-else:
-    text=text.replace(old2,new2,1)
-
-old3="original=r.data||[];extract();setStatus(label+' loaded successfully | Rows: '+original.length);resolve();"
-new3="original=r.data||[];extract();setStatus(label+' loaded successfully | Data rows: '+extracted.length);resolve();"
-if old3 not in text:
-    print("CSV status block not found")
-else:
-    text=text.replace(old3,new3,1)
-
-out=Path("/mnt/data/index_no_header_row.html")
-out.write_text(text,encoding="utf-8")
-print(out)
+    setProgress(10+((i+1)/files.length)*85);
+  }
+  original=[...(original.length?original:[]),...combined];extract();setStatus('ZIP processed successfully | '+files.length+' CSV file(s) | Data rows: '+extracted.length);
+  setTimeout(()=>document.getElementById('progress').style.display='none',700);
+}
+function extract(){
+  // Required source columns: A=1, Y=25, L=12, C=3, R=18, AH=34.
+  const map=[0,24,11,2,17,33];
+  // The first CSV row contains column headers and must not appear as data.
+  const dataRows = original.length > 0 ? original.slice(1) : [];
+  extracted=dataRows.map(row=>map.map(i=>row[i]??''));
+  updateMappingLabels();
+  document.getElementById('data').style.display='block';
+  document.getElementById('home').style.display='none';
+  document.getElementById('mappingBar').style.display='flex';
+  document.getElementById('fileChip').textContent='✓ '+sourceName;
+  render();
+}
+function updateMappingLabels(){
+  const labels=['A','Y','L','C','R','AH'];
+  const vals=[extracted[0]?.[0],extracted[0]?.[1],extracted[0]?.[2],extracted[0]?.[3],extracted[0]?.[4],extracted[0]?.[5]];
+  const header=original[0]||[];
+  const idx=[0,24,11,2,17,33];
+  const names=idx.map((i,n)=>header[i]||labels[n]);
+  ['A','Y','L','C','R','AH'].forEach((x,i)=>document.getElementById('m'+x).textContent='Col '+x+' → '+names[i]);
+  const hr=document.getElementById('headRow');
+  hr.innerHTML='<th>#</th>'+labels.map((x,i)=>'<th><span class="headMain">'+x+'</span> <span class="headSub">('+escapeHtml(names[i])+')</span><span class="thTools">◧⌃</span></th>').join('');
+}
+function filtered(){
+  const q=(document.getElementById('tableSearch').value||document.getElementById('search').value||'').toLowerCase().trim();
+  return q?extracted.filter(r=>r.some(v=>String(v).toLowerCase().includes(q))):extracted;
+}
+function searchChanged(){
+  const a=document.getElementById('search').value,b=document.getElementById('tableSearch').value;
+  if(document.activeElement===document.getElementById('search'))document.getElementById('tableSearch').value=a;else document.getElementById('search').value=b;
+  currentPage=1;render();
+}
+function render(){
+  const rows=filtered(),total=Math.max(1,Math.ceil(rows.length/pageSize));
+  if(currentPage>total)currentPage=total;
+  const start=(currentPage-1)*pageSize, pageRows=rows.slice(start,start+pageSize), tbody=document.getElementById('tbody');
+  tbody.innerHTML='';
+  pageRows.forEach((r,i)=>{
+    const tr=document.createElement('tr');tr.innerHTML='<td>'+ (start+i+1)+'</td>';
+    r.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});tbody.appendChild(tr);
+  });
+  if(!pageRows.length)tbody.innerHTML='<tr><td colspan="7" class="empty">No data found</td></tr>';
+  document.getElementById('shown').textContent=pageRows.length;document.getElementById('totalRows').textContent=rows.length;
+  document.getElementById('page').textContent='Page '+currentPage+' of '+total;
+}
+async function copyData(){
+  if(!extracted.length){alert('No data available.');return}
+  let rows=extracted;if(document.getElementById('headers').checked||document.getElementById('headers2').checked)rows=[['A','Y','L','C','R','AH'],...rows];
+  const text=rows.map(r=>r.map(v=>String(v).replace(/\t/g,' ').replace(/\r?\n/g,' ')).join('\t')).join('\n');
+  try{await navigator.clipboard.writeText(text);alert('Data copied. Now paste it into Google Sheets.')}
+  catch(e){const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();alert('Data copied.')}
+}
+function downloadCSV(){
+  if(!extracted.length){alert('No data available.');return}
+  let rows=extracted;if(document.getElementById('headers').checked)rows=[['A','Y','L','C','R','AH'],...rows];
+  download(Papa.unparse(rows),'extracted_data.csv','text/csv;charset=utf-8');
+}
+function downloadExcel(){
+  if(!extracted.length){alert('No data available.');return}
+  let rows=extracted;if(document.getElementById('headers').checked)rows=[['A','Y','L','C','R','AH'],...rows];
+  const html='<html><meta charset="UTF-8"><table>'+rows.map(r=>'<tr>'+r.map(v=>'<td>'+escapeHtml(v)+'</td>').join('')+'</tr>').join('')+'</table></html>';
+  download(html,'extracted_data.xls','application/vnd.ms-excel');
+}
+function download(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function escapeHtml(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function prev(){if(currentPage>1){currentPage--;render()}}
+function next(){const t=Math.max(1,Math.ceil(filtered().length/pageSize));if(currentPage<t){currentPage++;render()}}
+function changeSize(){pageSize=Number(document.getElementById('size').value);currentPage=1;render()}
+function setStatus(x){document.getElementById('status').textContent=x}
+function showProgress(v){document.getElementById('progress').style.display='block';setProgress(v)}
+function setProgress(v){document.getElementById('bar').style.width=Math.max(0,Math.min(100,v))+'%'}
+function loadSample(){
+  const headers=new Array(34).fill('');headers[0]='Name';headers[2]='C';headers[11]='Total';headers[17]='Lineitem name';headers[24]='Billing Name';headers[33]='Billing Phone';
+  const rows=[headers];
+  for(let i=1;i<=50;i++){const r=new Array(34).fill('');r[0]='MA'+(34078+i);r[2]=i%3?'':'x';r[11]=(1299+i*10).toFixed(2);r[17]='Devayani Kanchipuram Silk Saree';r[24]=['Varsha verma','Vasavi Chitrali','Sudarashan Chitukula','Aruna Thorat'][i%4];r[33]='9'+String(780000000+i).slice(-9);rows.push(r)}
+  sourceName='Sample Data';original=rows;extract();setStatus('Sample data loaded | Rows: 50')
+}
+</script>
+</body>
+</html>
