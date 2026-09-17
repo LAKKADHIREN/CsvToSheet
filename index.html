@@ -1,996 +1,265 @@
-<!DOCTYPE html>
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Google Sheets - CSV Extractor</title>
-
-<!-- Papa Parse: CSV processing happens in the browser -->
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f5f7fb;
-    color: #202124;
-}
-
-.container {
-    max-width: 1200px;
-    margin: 30px auto;
-    padding: 0 20px;
-}
-
-h1 {
-    margin-bottom: 5px;
-}
-
-.subtitle {
-    color: #666;
-    margin-bottom: 25px;
-}
-
-.card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,.08);
-}
-
-.upload-box {
-    border: 2px dashed #aaa;
-    border-radius: 12px;
-    padding: 45px 20px;
-    text-align: center;
-    cursor: pointer;
-    background: #fafafa;
-    transition: .2s;
-}
-
-.upload-box:hover {
-    border-color: #4285f4;
-    background: #f3f7ff;
-}
-
-.upload-box.dragover {
-    border-color: #4285f4;
-    background: #eaf2ff;
-}
-
-input[type="file"] {
-    display: none;
-}
-
-.btn {
-    border: none;
-    border-radius: 7px;
-    padding: 10px 16px;
-    cursor: pointer;
-    font-size: 14px;
-    margin: 4px;
-    background: #4285f4;
-    color: white;
-}
-
-.btn:hover {
-    opacity: .9;
-}
-
-.btn.green {
-    background: #188038;
-}
-
-.btn.gray {
-    background: #5f6368;
-}
-
-.btn.orange {
-    background: #f29900;
-}
-
-.btn.red {
-    background: #d93025;
-}
-
-.toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    margin-top: 15px;
-}
-
-.search {
-    flex: 1;
-    min-width: 250px;
-    padding: 11px;
-    border: 1px solid #ccc;
-    border-radius: 7px;
-}
-
-.mapping {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 10px;
-}
-
-.mapping-box {
-    background: #f8f9fa;
-    padding: 12px;
-    border-radius: 8px;
-}
-
-.mapping-box strong {
-    display: block;
-    margin-bottom: 7px;
-}
-
-.mapping-box input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-
-.table-wrapper {
-    overflow-x: auto;
-    margin-top: 15px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 700px;
-}
-
-th {
-    background: #f1f3f4;
-    position: sticky;
-    top: 0;
-}
-
-th, td {
-    border: 1px solid #ddd;
-    padding: 9px;
-    text-align: left;
-    white-space: nowrap;
-}
-
-tr:nth-child(even) {
-    background: #fafafa;
-}
-
-.stats {
-    display: flex;
-    gap: 30px;
-    margin-top: 15px;
-    flex-wrap: wrap;
-}
-
-.stat {
-    background: #f1f3f4;
-    padding: 12px 18px;
-    border-radius: 8px;
-}
-
-.status {
-    margin-top: 12px;
-    color: #555;
-}
-
-.pagination {
-    margin-top: 15px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-}
-
-select {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-}
-
-@media(max-width: 800px) {
-    .mapping {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .container {
-        padding: 0 10px;
-    }
-}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fa;color:#172033}
+.top{height:62px;background:#fff;border-bottom:1px solid #ddd;display:flex;align-items:center;padding:0 10px;gap:12px;overflow:hidden}
+.logo{width:42px;height:42px;background:#08a65b;color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold}
+.title{font-size:18px;font-weight:600;white-space:nowrap}.badge{background:#dff6e9;color:#087b46;padding:6px 10px;border-radius:7px;font-size:13px;white-space:nowrap}
+.nav{display:flex;gap:18px;margin-left:4px;font-size:14px;white-space:nowrap}.nav span{cursor:pointer}.actions{margin-left:auto;display:flex;gap:8px;white-space:nowrap}
+button{border:0;border-radius:6px;padding:10px 14px;font-weight:600;cursor:pointer;font-size:14px}
+.green{background:#08a65b;color:#fff}.orange{background:#f2c89d;color:#fff}.blue{background:#91b5ed;color:#fff}.gray{background:#fff;border:1px solid #d5d9df;color:#344054}
+.formula{height:58px;background:#fff;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:10px;padding:0 8px;overflow:hidden}
+.search{height:32px;width:375px;border:1px solid #d6dae0;border-radius:5px;padding:0 12px;font-size:14px}.divider{width:1px;height:25px;background:#ddd}.namebox{height:30px;width:66px;border:1px solid #d6dae0;border-radius:5px;text-align:center;font-weight:bold}.fx{font-weight:bold;color:#777}.formula-text{height:32px;flex:1;min-width:250px;border:1px solid #d6dae0;border-radius:5px;padding:7px 12px;font-family:monospace}.extract{font-size:13px;white-space:nowrap;margin-left:auto}
+.tag{padding:6px 8px;border-radius:5px;font-weight:bold;font-size:13px}.a{background:#dbeafe;color:#2563eb}.y{background:#ede9fe;color:#7c3aed}.l{background:#fef3c7;color:#b45309}.c{background:#d1fae5;color:#047857}.r{background:#fee2e2;color:#dc2626}.ah{background:#cffafe;color:#0891b2}
+main{padding:118px 0 40px;min-height:calc(100vh - 120px)}.upload{width:min(790px,90%);margin:auto;background:#fff;border:2px dashed #cbd5df;border-radius:20px;padding:46px;text-align:center}
+.cloud{width:76px;height:76px;border-radius:50%;background:#d9fae9;color:#08a65b;margin:auto;display:flex;align-items:center;justify-content:center;font-size:38px}.upload h2{font-size:25px;margin:18px 0 10px}.upload p{color:#718096;line-height:1.55;font-size:16px;margin:0 auto 24px}.upload p b{color:#08a65b}.file-buttons{display:flex;justify-content:center;gap:14px}.select{font-size:17px;padding:14px 28px}.sample{font-size:17px;padding:14px 22px}
+.mapping-preview{border-top:1px solid #edf0f3;margin-top:28px;padding-top:20px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.mapping-preview div{border:1px solid #e1e5ea;border-radius:6px;padding:9px 3px;font-size:12px;color:#64748b}.mapping-preview b{display:block;font-size:14px;margin-bottom:5px}
+.status{width:min(790px,90%);margin:14px auto;text-align:center;color:#667085;font-size:14px}.progress{width:min(790px,90%);height:7px;background:#e5e7eb;border-radius:8px;margin:10px auto;display:none;overflow:hidden}.bar{height:100%;width:0;background:#08a65b}
+.data{width:95%;margin:25px auto;background:#fff;border:1px solid #e1e5ea;border-radius:12px;padding:18px;display:none}.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.toolbar .search{width:320px}.table-wrap{overflow:auto;max-height:58vh;margin-top:15px}table{border-collapse:collapse;width:100%;min-width:800px}th,td{border:1px solid #ddd;padding:8px;white-space:nowrap;text-align:left;font-size:13px}th{background:#f1f3f4;position:sticky;top:0}.stats{margin:12px 0;color:#667085}.pages{display:flex;justify-content:center;gap:10px;align-items:center;margin-top:15px}.pages button{padding:7px 12px}.pages select{padding:7px;border:1px solid #ddd;border-radius:5px}
+@media(max-width:1050px){.nav{display:none}.actions{margin-left:auto}.extract{display:none}}
+@media(max-width:700px){.badge{display:none}.actions button:not(.green){display:none}.formula{height:auto;min-height:58px;flex-wrap:wrap}.search{width:45%}.formula-text{display:none}main{padding-top:55px}.upload{padding:30px 16px}.file-buttons{flex-direction:column}.mapping-preview{grid-template-columns:repeat(2,1fr)}.data{width:98%}}
 </style>
 </head>
-
 <body>
 
-<div class="container">
+<header class="top">
+  <div class="logo">▦</div>
+  <div class="title">Google Sheets - CSV Extractor</div>
+  <div class="badge">Columns A, Y, L, C, R, AH</div>
+  <div class="nav">
+    <span>📁 File</span>
+    <span>☷ Column Mapper</span>
+    <span onclick="copyData()">📋 Copy Data Only</span>
+  </div>
+  <div class="actions">
+    <button class="green" onclick="openFile()">☁ Upload File</button>
+    <button class="orange" onclick="copyData()">▣ Copy Data (No Headers)</button>
+    <button class="blue" onclick="downloadCSV()">⬇ Download</button>
+  </div>
+</header>
 
-    <h1>Google Sheets - CSV Extractor</h1>
-
-    <div class="subtitle">
-        Extract columns A, Y, L, C, R and AH from your CSV file
-    </div>
-
-    <!-- Upload -->
-    <div class="card">
-
-        <div id="uploadBox" class="upload-box">
-
-            <h2>Upload CSV File</h2>
-
-            <p>
-                Drag & drop your CSV file here
-                <br>
-                or click to select a file
-            </p>
-
-            <button class="btn" onclick="document.getElementById('fileInput').click()">
-                Select File
-            </button>
-
-            <input
-                type="file"
-                id="fileInput"
-                accept=".csv,.txt"
-            >
-
-        </div>
-
-        <div class="status" id="status">
-            No file selected
-        </div>
-
-    </div>
-
-
-    <!-- Column mapping -->
-    <div class="card">
-
-        <h2>Column Mapping</h2>
-
-        <p>
-            Enter source column numbers.
-            A = 1, Y = 25, L = 12, C = 3, R = 18, AH = 34
-        </p>
-
-        <div class="mapping">
-
-            <div class="mapping-box">
-                <strong>Output A</strong>
-                <input id="mapA" type="number" value="1" min="1">
-            </div>
-
-            <div class="mapping-box">
-                <strong>Output Y</strong>
-                <input id="mapY" type="number" value="25" min="1">
-            </div>
-
-            <div class="mapping-box">
-                <strong>Output L</strong>
-                <input id="mapL" type="number" value="12" min="1">
-            </div>
-
-            <div class="mapping-box">
-                <strong>Output C</strong>
-                <input id="mapC" type="number" value="3" min="1">
-            </div>
-
-            <div class="mapping-box">
-                <strong>Output R</strong>
-                <input id="mapR" type="number" value="18" min="1">
-            </div>
-
-            <div class="mapping-box">
-                <strong>Output AH</strong>
-                <input id="mapAH" type="number" value="34" min="1">
-            </div>
-
-        </div>
-
-        <button class="btn orange" onclick="extractData()">
-            Apply & Re-extract
-        </button>
-
-    </div>
-
-
-    <!-- Controls -->
-    <div class="card">
-
-        <div class="toolbar">
-
-            <input
-                type="text"
-                id="searchInput"
-                class="search"
-                placeholder="Search extracted data..."
-                oninput="renderTable()"
-            >
-
-            <label>
-                <input type="checkbox" id="includeHeaders">
-                Include headers on copy
-            </label>
-
-            <button class="btn green" onclick="copyData()">
-                Copy Data
-            </button>
-
-            <button class="btn" onclick="downloadCSV()">
-                Download CSV
-            </button>
-
-            <button class="btn gray" onclick="downloadExcel()">
-                Download Excel
-            </button>
-
-            <button class="btn red" onclick="clearAll()">
-                Clear
-            </button>
-
-        </div>
-
-    </div>
-
-
-    <!-- Table -->
-    <div class="card">
-
-        <h2>Extracted Data</h2>
-
-        <div class="stats">
-
-            <div class="stat">
-                <strong>Rows:</strong>
-                <span id="rowCount">0</span>
-            </div>
-
-            <div class="stat">
-                <strong>Columns:</strong>
-                6
-            </div>
-
-        </div>
-
-        <div class="table-wrapper">
-
-            <table id="dataTable">
-
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>A</th>
-                        <th>Y</th>
-                        <th>L</th>
-                        <th>C</th>
-                        <th>R</th>
-                        <th>AH</th>
-                    </tr>
-                </thead>
-
-                <tbody id="tableBody">
-                    <tr>
-                        <td colspan="7" style="text-align:center">
-                            Select a CSV file to view data
-                        </td>
-                    </tr>
-                </tbody>
-
-            </table>
-
-        </div>
-
-
-        <div class="pagination">
-
-            <button class="btn gray" onclick="previousPage()">
-                Previous
-            </button>
-
-            <span id="pageInfo">
-                Page 1 of 1
-            </span>
-
-            <button class="btn gray" onclick="nextPage()">
-                Next
-            </button>
-
-            <select id="pageSize" onchange="changePageSize()">
-                <option value="25">25 per page</option>
-                <option value="50">50 per page</option>
-                <option value="100">100 per page</option>
-                <option value="250">250 per page</option>
-                <option value="500">500 per page</option>
-            </select>
-
-        </div>
-
-    </div>
-
+<div class="formula">
+  <input class="search" id="search" placeholder="⌕  Search extracted data..." oninput="searchChanged()">
+  <div class="divider"></div>
+  <input class="namebox" value="A1" readonly>
+  <span class="fx">ƒx</span>
+  <div class="formula-text" id="formula">Select a cell or upload a file to view data</div>
+  <div class="divider"></div>
+  <label style="white-space:nowrap;font-size:13px"><input type="checkbox" id="headers"> Include headers on copy</label>
+  <span class="extract">Extracted:</span>
+  <span class="tag a">A</span><span class="tag y">Y</span><span class="tag l">L</span><span class="tag c">C</span><span class="tag r">R</span><span class="tag ah">AH</span>
 </div>
 
+<main>
+  <section class="upload" id="upload">
+    <div class="cloud">☁</div>
+    <h2>Upload CSV or ZIP File</h2>
+    <p>Drag and drop your <b>.csv</b> or <b>.zip</b> archive (containing CSV file(s)) to extract columns <b>A, Y, L, C, R, AH</b> into Google Sheet format.</p>
+    <div class="file-buttons">
+      <button class="green select" onclick="openFile()">▣ Select File</button>
+      <button class="gray sample" onclick="loadSample()">🛠 Load Sample Data</button>
+    </div>
+    <div class="mapping-preview">
+      <div><b style="color:#2563eb">Col A</b>1st Col / A</div>
+      <div><b style="color:#7c3aed">Col Y</b>25th Col / Y</div>
+      <div><b style="color:#b45309">Col L</b>12th Col / L</div>
+      <div><b style="color:#047857">Col C</b>3rd Col / C</div>
+      <div><b style="color:#dc2626">Col R</b>18th Col / R</div>
+      <div><b style="color:#0891b2">Col AH</b>34th Col / AH</div>
+    </div>
+  </section>
+
+  <input id="file" type="file" accept=".csv,.txt,.zip" hidden>
+
+  <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
+  <div class="status" id="status">No file selected</div>
+
+  <section class="data" id="data">
+    <div class="toolbar">
+      <input class="search" id="tableSearch" placeholder="Search extracted data..." oninput="searchChanged()">
+      <button class="green" onclick="copyData()">Copy Data</button>
+      <button class="gray" onclick="downloadCSV()">Export CSV</button>
+      <button class="gray" onclick="downloadExcel()">Export Excel</button>
+      <button class="gray" onclick="clearAll()">Clear</button>
+    </div>
+    <div class="stats">Extracted rows: <b id="count">0</b></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>A</th><th>Y</th><th>L</th><th>C</th><th>R</th><th>AH</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pages">
+      <button class="gray" onclick="prev()">Previous</button>
+      <span id="page">Page 1 of 1</span>
+      <button class="gray" onclick="next()">Next</button>
+      <select id="size" onchange="changeSize()">
+        <option>25</option><option>50</option><option>100</option><option>250</option><option>500</option>
+      </select>
+    </div>
+  </section>
+</main>
 
 <script>
+let original=[], extracted=[], currentPage=1, pageSize=25;
 
-let originalData = [];
-let extractedData = [];
+const fileInput=document.getElementById('file');
+const upload=document.getElementById('upload');
 
-let currentPage = 1;
-let pageSize = 25;
+function openFile(){fileInput.click()}
 
-
-/* =========================
-   FILE UPLOAD
-========================= */
-
-const fileInput = document.getElementById("fileInput");
-const uploadBox = document.getElementById("uploadBox");
-
-fileInput.addEventListener("change", function(e) {
-
-    if (e.target.files.length > 0) {
-        processFile(e.target.files[0]);
-    }
-
+fileInput.addEventListener('change',e=>{
+  if(e.target.files[0]) processFile(e.target.files[0]);
 });
 
-
-/* Drag & Drop */
-
-uploadBox.addEventListener("dragover", function(e) {
-
-    e.preventDefault();
-
-    uploadBox.classList.add("dragover");
-
+upload.addEventListener('dragover',e=>{e.preventDefault();upload.style.borderColor='#08a65b'});
+upload.addEventListener('dragleave',()=>upload.style.borderColor='#cbd5df');
+upload.addEventListener('drop',e=>{
+  e.preventDefault();upload.style.borderColor='#cbd5df';
+  if(e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
 });
 
-uploadBox.addEventListener("dragleave", function() {
+async function processFile(file){
+  original=[];extracted=[];currentPage=1;
+  setStatus('Reading '+file.name+' ...');
+  if(file.name.toLowerCase().endsWith('.zip')) await processZip(file);
+  else await parseCsv(file,'CSV');
+}
 
-    uploadBox.classList.remove("dragover");
-
-});
-
-uploadBox.addEventListener("drop", function(e) {
-
-    e.preventDefault();
-
-    uploadBox.classList.remove("dragover");
-
-    if (e.dataTransfer.files.length > 0) {
-
-        processFile(e.dataTransfer.files[0]);
-
-    }
-
-});
-
-
-/* =========================
-   PROCESS CSV
-========================= */
-
-function processFile(file) {
-
-    document.getElementById("status").textContent =
-        "Processing: " + file.name;
-
-    Papa.parse(file, {
-
-        header: false,
-
-        skipEmptyLines: true,
-
-        worker: true,
-
-        complete: function(results) {
-
-            originalData = results.data;
-
-            extractData();
-
-            document.getElementById("status").textContent =
-                "Loaded: " + file.name +
-                " | Rows: " + originalData.length;
-
-        },
-
-        error: function(error) {
-
-            document.getElementById("status").textContent =
-                "Error: " + error.message;
-
-        }
-
+function parseCsv(input,label){
+  return new Promise((resolve,reject)=>{
+    Papa.parse(input,{
+      header:false,skipEmptyLines:true,worker:true,
+      complete:r=>{
+        if(r.errors && r.errors.length) console.warn(r.errors);
+        original=r.data||[]; extract(); setStatus(label+' loaded successfully | Rows: '+original.length); resolve();
+      },
+      error:reject
     });
-
+  });
 }
 
-
-/* =========================
-   EXTRACT COLUMNS
-========================= */
-
-function extractData() {
-
-    if (!originalData.length) {
-
-        extractedData = [];
-
-        renderTable();
-
-        return;
-
-    }
-
-    const mappings = [
-
-        Number(document.getElementById("mapA").value) - 1,
-
-        Number(document.getElementById("mapY").value) - 1,
-
-        Number(document.getElementById("mapL").value) - 1,
-
-        Number(document.getElementById("mapC").value) - 1,
-
-        Number(document.getElementById("mapR").value) - 1,
-
-        Number(document.getElementById("mapAH").value) - 1
-
-    ];
-
-
-    extractedData = originalData.map(row => {
-
-        return mappings.map(index => {
-
-            return row[index] !== undefined
-                ? row[index]
-                : "";
-
-        });
-
-    });
-
-
-    currentPage = 1;
-
-    renderTable();
-
+async function processZip(file){
+  showProgress(10);setStatus('Opening ZIP file...');
+  const zip=await JSZip.loadAsync(file);
+  const files=Object.values(zip.files).filter(x=>!x.dir && /\.(csv|txt)$/i.test(x.name));
+  if(!files.length) throw new Error('No CSV file found inside this ZIP.');
+  let combined=[];
+  for(let i=0;i<files.length;i++){
+    setStatus('Reading '+files[i].name+' ('+(i+1)+'/'+files.length+')');
+    const text=await files[i].async('string');
+    const result=Papa.parse(text,{header:false,skipEmptyLines:true});
+    combined=combined.concat(result.data||[]);
+    setProgress(10+((i+1)/files.length)*85);
+  }
+  original=combined;extract();
+  setStatus('ZIP processed successfully | '+files.length+' CSV file(s) | Rows: '+original.length);
+  setTimeout(()=>document.getElementById('progress').style.display='none',700);
 }
 
-
-/* =========================
-   SEARCH
-========================= */
-
-function getFilteredData() {
-
-    const search =
-        document.getElementById("searchInput")
-        .value
-        .toLowerCase()
-        .trim();
-
-    if (!search) {
-        return extractedData;
-    }
-
-    return extractedData.filter(row => {
-
-        return row.some(cell =>
-            String(cell)
-                .toLowerCase()
-                .includes(search)
-        );
-
-    });
-
+function extract(){
+  const map=[0,24,11,2,17,33];
+  extracted=original.map(row=>map.map(i=>row[i]??''));
+  render();
+  document.getElementById('data').style.display='block';
+  document.getElementById('formula').textContent='Data extracted from selected file';
 }
 
-
-/* =========================
-   RENDER TABLE
-========================= */
-
-function renderTable() {
-
-    const tbody =
-        document.getElementById("tableBody");
-
-    tbody.innerHTML = "";
-
-    const filtered = getFilteredData();
-
-    const totalPages =
-        Math.max(1, Math.ceil(filtered.length / pageSize));
-
-    if (currentPage > totalPages) {
-        currentPage = totalPages;
-    }
-
-    const start =
-        (currentPage - 1) * pageSize;
-
-    const end =
-        Math.min(start + pageSize, filtered.length);
-
-    const pageData =
-        filtered.slice(start, end);
-
-
-    if (pageData.length === 0) {
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" style="text-align:center">
-                    No data found
-                </td>
-            </tr>
-        `;
-
-    } else {
-
-        pageData.forEach((row, index) => {
-
-            const tr = document.createElement("tr");
-
-            const number =
-                document.createElement("td");
-
-            number.textContent = start + index + 1;
-
-            tr.appendChild(number);
-
-
-            row.forEach(cell => {
-
-                const td =
-                    document.createElement("td");
-
-                td.textContent = cell;
-
-                tr.appendChild(td);
-
-            });
-
-            tbody.appendChild(tr);
-
-        });
-
-    }
-
-
-    document.getElementById("rowCount").textContent =
-        filtered.length;
-
-    document.getElementById("pageInfo").textContent =
-        `Page ${currentPage} of ${totalPages}`;
-
+function filtered(){
+  const q=(document.getElementById('search').value||document.getElementById('tableSearch').value||'').toLowerCase().trim();
+  if(!q)return extracted;
+  return extracted.filter(r=>r.some(v=>String(v).toLowerCase().includes(q)));
 }
 
-
-/* =========================
-   COPY DATA
-========================= */
-
-async function copyData() {
-
-    const includeHeaders =
-        document.getElementById("includeHeaders").checked;
-
-    let rows = [];
-
-    if (includeHeaders) {
-
-        rows.push([
-            "A",
-            "Y",
-            "L",
-            "C",
-            "R",
-            "AH"
-        ]);
-
-    }
-
-    rows = rows.concat(extractedData);
-
-
-    const text = rows
-        .map(row =>
-            row.map(cell =>
-                String(cell)
-                    .replace(/\t/g, " ")
-                    .replace(/\r?\n/g, " ")
-            ).join("\t")
-        )
-        .join("\n");
-
-
-    try {
-
-        await navigator.clipboard.writeText(text);
-
-        alert("Data copied! Now paste it directly into Google Sheets.");
-
-    } catch (error) {
-
-        /* Fallback */
-
-        const textarea =
-            document.createElement("textarea");
-
-        textarea.value = text;
-
-        document.body.appendChild(textarea);
-
-        textarea.select();
-
-        document.execCommand("copy");
-
-        textarea.remove();
-
-        alert("Data copied!");
-
-    }
-
+function searchChanged(){
+  const a=document.getElementById('search').value;
+  const b=document.getElementById('tableSearch').value;
+  if(document.activeElement===document.getElementById('search')) document.getElementById('tableSearch').value=a;
+  else document.getElementById('search').value=b;
+  currentPage=1;render();
 }
 
-
-/* =========================
-   DOWNLOAD CSV
-========================= */
-
-function downloadCSV() {
-
-    if (!extractedData.length) {
-
-        alert("No data available.");
-
-        return;
-
-    }
-
-
-    let data = extractedData;
-
-    if (
-        document.getElementById("includeHeaders").checked
-    ) {
-
-        data = [
-            ["A", "Y", "L", "C", "R", "AH"],
-            ...extractedData
-        ];
-
-    }
-
-
-    const csv =
-        Papa.unparse(data);
-
-
-    downloadFile(
-        csv,
-        "extracted_data.csv",
-        "text/csv;charset=utf-8;"
-    );
-
+function render(){
+  const tbody=document.getElementById('tbody');tbody.innerHTML='';
+  const rows=filtered();const total=Math.max(1,Math.ceil(rows.length/pageSize));
+  if(currentPage>total)currentPage=total;
+  const start=(currentPage-1)*pageSize;
+  rows.slice(start,start+pageSize).forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    const n=document.createElement('td');n.textContent=start+i+1;tr.appendChild(n);
+    r.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});
+    tbody.appendChild(tr);
+  });
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center">No data found</td></tr>';
+  }
+  document.getElementById('count').textContent=rows.length;
+  document.getElementById('page').textContent='Page '+currentPage+' of '+total;
 }
 
-
-/* =========================
-   EXCEL DOWNLOAD
-========================= */
-
-function downloadExcel() {
-
-    if (!extractedData.length) {
-
-        alert("No data available.");
-
-        return;
-
-    }
-
-
-    let data = extractedData;
-
-    if (
-        document.getElementById("includeHeaders").checked
-    ) {
-
-        data = [
-            ["A", "Y", "L", "C", "R", "AH"],
-            ...extractedData
-        ];
-
-    }
-
-
-    let html = `
-        <table>
-            ${data.map(row => `
-                <tr>
-                    ${row.map(cell =>
-                        `<td>${escapeHTML(cell)}</td>`
-                    ).join("")}
-                </tr>
-            `).join("")}
-        </table>
-    `;
-
-
-    const blob = new Blob(
-        [html],
-        {
-            type: "application/vnd.ms-excel"
-        }
-    );
-
-
-    const url =
-        URL.createObjectURL(blob);
-
-    const a =
-        document.createElement("a");
-
-    a.href = url;
-
-    a.download =
-        "extracted_data.xls";
-
-    a.click();
-
-    URL.revokeObjectURL(url);
-
+async function copyData(){
+  if(!extracted.length){alert('No data available.');return}
+  let rows=extracted;
+  if(document.getElementById('headers').checked) rows=[['A','Y','L','C','R','AH'],...rows];
+  const text=rows.map(r=>r.map(v=>String(v).replace(/\t/g,' ').replace(/\r?\n/g,' ')).join('\t')).join('\n');
+  try{await navigator.clipboard.writeText(text);alert('Data copied. Now paste it into Google Sheets.')}
+  catch(e){const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();alert('Data copied.')}
 }
 
-
-/* =========================
-   GENERIC DOWNLOAD
-========================= */
-
-function downloadFile(
-    content,
-    filename,
-    type
-) {
-
-    const blob =
-        new Blob(
-            [content],
-            { type: type }
-        );
-
-    const url =
-        URL.createObjectURL(blob);
-
-    const a =
-        document.createElement("a");
-
-    a.href = url;
-
-    a.download = filename;
-
-    document.body.appendChild(a);
-
-    a.click();
-
-    a.remove();
-
-    URL.revokeObjectURL(url);
-
+function downloadCSV(){
+  if(!extracted.length){alert('No data available.');return}
+  let rows=extracted;if(document.getElementById('headers').checked)rows=[['A','Y','L','C','R','AH'],...rows];
+  download(Papa.unparse(rows),'extracted_data.csv','text/csv;charset=utf-8');
 }
 
-
-/* =========================
-   ESCAPE HTML
-========================= */
-
-function escapeHTML(value) {
-
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-
+function downloadExcel(){
+  if(!extracted.length){alert('No data available.');return}
+  let rows=extracted;if(document.getElementById('headers').checked)rows=[['A','Y','L','C','R','AH'],...rows];
+  const html='<html><meta charset="UTF-8"><table>'+rows.map(r=>'<tr>'+r.map(v=>'<td>'+escapeHtml(v)+'</td>').join('')+'</tr>').join('')+'</table></html>';
+  download(html,'extracted_data.xls','application/vnd.ms-excel');
 }
 
+function download(content,name,type){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function escapeHtml(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
-/* =========================
-   PAGINATION
-========================= */
+function prev(){if(currentPage>1){currentPage--;render()}}
+function next(){const t=Math.max(1,Math.ceil(filtered().length/pageSize));if(currentPage<t){currentPage++;render()}}
+function changeSize(){pageSize=Number(document.getElementById('size').value);currentPage=1;render()}
+function setStatus(x){document.getElementById('status').textContent=x}
+function showProgress(v){document.getElementById('progress').style.display='block';setProgress(v)}
+function setProgress(v){document.getElementById('bar').style.width=Math.max(0,Math.min(100,v))+'%'}
 
-function previousPage() {
-
-    if (currentPage > 1) {
-
-        currentPage--;
-
-        renderTable();
-
-    }
-
+function clearAll(){
+  original=[];extracted=[];currentPage=1;fileInput.value='';
+  document.getElementById('data').style.display='none';
+  document.getElementById('status').textContent='No file selected';
+  document.getElementById('formula').textContent='Select a cell or upload a file to view data';
+  document.getElementById('progress').style.display='none';
 }
 
-
-function nextPage() {
-
-    const filtered =
-        getFilteredData();
-
-    const totalPages =
-        Math.max(
-            1,
-            Math.ceil(
-                filtered.length / pageSize
-            )
-        );
-
-
-    if (currentPage < totalPages) {
-
-        currentPage++;
-
-        renderTable();
-
-    }
-
+function loadSample(){
+  const row=new Array(34).fill('');
+  row[0]='Sample A';row[2]='Sample C';row[11]='Sample L';row[17]='Sample R';row[24]='Sample Y';row[33]='Sample AH';
+  original=[row,row.map((v,i)=>i===0?'Demo 2':i===24?'Demo Y':i===33?'Demo AH':v)];
+  extract();setStatus('Sample data loaded');
 }
-
-
-function changePageSize() {
-
-    pageSize =
-        Number(
-            document.getElementById("pageSize").value
-        );
-
-    currentPage = 1;
-
-    renderTable();
-
-}
-
-
-/* =========================
-   CLEAR
-========================= */
-
-function clearAll() {
-
-    originalData = [];
-
-    extractedData = [];
-
-    fileInput.value = "";
-
-    document.getElementById("searchInput").value = "";
-
-    document.getElementById("status").textContent =
-        "No file selected";
-
-    currentPage = 1;
-
-    renderTable();
-
-}
-
 </script>
-
 </body>
 </html>
+'''
+
+path=Path("/mnt/data/index.html")
+path.write_text(html, encoding="utf-8")
+print(f"Ready: {path}")
