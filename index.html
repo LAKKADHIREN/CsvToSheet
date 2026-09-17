@@ -2,723 +2,262 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Google Sheets - CSV Extractor</title>
-
-<!-- CSV parser -->
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-<!-- ZIP reader -->
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-
 <style>
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#172033;background:#f7f9fb}
-button,input,select{font:inherit}
-
-.topbar{
-  height:62px;background:#fff;border-bottom:1px solid #dfe3e8;
-  display:flex;align-items:center;padding:0 10px;gap:11px;white-space:nowrap;overflow:hidden
-}
-.logo{width:42px;height:42px;background:#08a45b;border-radius:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px;flex:none}
-.title{font-size:18px;font-weight:600}
-.badge{background:#dff7e9;color:#087b46;border-radius:7px;padding:6px 10px;font-size:13px}
-.menu{display:flex;gap:18px;font-size:14px;color:#344054;margin-left:4px}
-.menu span{cursor:pointer}
-.actions{margin-left:auto;display:flex;gap:8px}
-.btn{border:0;border-radius:6px;padding:10px 15px;font-weight:600;cursor:pointer}
-.green{background:#08a45b;color:#fff}
-.orange{background:#e88916;color:#fff}
-.blue{background:#4f86e5;color:#fff}
-.light{background:#fff;border:1px solid #d5dbe2;color:#344054}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-
-.formula{
-  height:57px;background:#fff;border-bottom:1px solid #dfe3e8;
-  display:flex;align-items:center;gap:9px;padding:0 9px;overflow:hidden
-}
-.search{height:32px;width:395px;border:1px solid #d5dbe2;border-radius:5px;padding:0 12px;outline:none}
-.divider{height:25px;width:1px;background:#d9dde2;flex:none}
-.namebox{height:30px;width:68px;border:1px solid #d5dbe2;border-radius:5px;text-align:center;font-weight:bold}
-.fx{font-weight:bold;color:#777}
-.formula-text{height:32px;line-height:32px;flex:1;min-width:180px;border:1px solid #d5dbe2;border-radius:5px;padding:0 12px;font-family:monospace;font-size:13px;overflow:hidden}
-.extract{font-size:13px;white-space:nowrap}
-.tag{padding:6px 8px;border-radius:5px;font-weight:bold;font-size:13px}
-.ta{background:#dbeafe;color:#2563eb}.ty{background:#ede9fe;color:#7c3aed}
-.tl{background:#fef3c7;color:#b45309}.tc{background:#d1fae5;color:#047857}
-.tr{background:#fee2e2;color:#dc2626}.tah{background:#cffafe;color:#0891b2}
-
-.mappingbar{
-  display:none;height:44px;background:#eafff4;border-bottom:1px solid #ccebdd;
-  align-items:center;gap:8px;padding:0 18px;white-space:nowrap;overflow:auto;font-size:14px
-}
-.map-pill{background:#fff;border:1px solid #a9e1c4;color:#075d3b;padding:6px 10px;border-radius:5px;font-family:monospace}
-.map-title{font-weight:bold}.custom{margin-left:auto;color:#075d3b}
-
-.home{min-height:calc(100vh - 119px);padding:90px 0 40px}
-.upload{
-  width:min(790px,90%);margin:auto;background:#fff;border:2px dashed #cbd5df;
-  border-radius:20px;padding:46px;text-align:center;box-shadow:0 2px 10px #0000000d
-}
-.upload.drag{border-color:#08a45b;background:#f2fff8}
-.cloud{width:76px;height:76px;border-radius:50%;background:#d9fae9;color:#08a45b;margin:auto;display:flex;align-items:center;justify-content:center;font-size:38px}
-.upload h2{font-size:25px;margin:18px 0 10px}
-.upload p{color:#718096;line-height:1.55;font-size:16px;margin:0 auto 24px;max-width:650px}
-.upload p b{color:#08a45b}
-.file-buttons{display:flex;justify-content:center;gap:14px}
-.select{font-size:17px;padding:14px 28px}.sample{font-size:17px;padding:14px 22px}
-.mapping-preview{border-top:1px solid #edf0f3;margin-top:28px;padding-top:20px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-.mapping-preview div{border:1px solid #e1e5ea;border-radius:6px;padding:9px 3px;font-size:12px;color:#64748b}
-.mapping-preview b{display:block;font-size:14px;margin-bottom:5px}
-.status{width:min(790px,90%);margin:14px auto;text-align:center;color:#667085;font-size:14px}
-.progress{display:none;width:min(790px,90%);height:7px;background:#e5e7eb;border-radius:8px;margin:10px auto;overflow:hidden}
-.bar{height:100%;width:0;background:#08a45b}
-
-.data{display:none;width:100%;background:#fff}
-.tabletop{
-  height:49px;border-bottom:1px solid #dfe3e8;display:flex;align-items:center;
-  padding:0 18px;gap:10px
-}
-.table-search{height:32px;width:300px;border:1px solid #d5dbe2;border-radius:5px;padding:0 12px}
-.file-chip{margin-left:auto;background:#effcf5;color:#087b46;border:1px solid #b9ead0;border-radius:18px;padding:7px 13px;font-size:14px}
-.tablewrap{overflow:auto;height:calc(100vh - 218px);min-height:350px}
-table{border-collapse:collapse;width:max-content;min-width:100%;table-layout:auto}
-th,td{border-right:1px solid #dfe3e8;border-bottom:1px solid #dfe3e8;padding:10px 14px;text-align:left;white-space:nowrap;font-size:14px;height:42px}
-th{background:#f8fafc;color:#1f2937;position:sticky;top:0;z-index:3;font-weight:500}
-th:first-child,td:first-child{
-  position:sticky;left:0;z-index:4;background:#f8fafc;width:54px;text-align:center;color:#344054
-}
-.th-main{font-weight:600}.th-sub{color:#667085;font-weight:400}
-.th-tools{float:right;color:#98a2b3;margin-left:18px}
-.empty{text-align:center;color:#667085;padding:50px}
-.bottom{
-  height:58px;background:#fff;border-top:1px solid #dfe3e8;display:flex;
-  align-items:center;padding:0 18px;gap:16px
-}
-.bottom-spacer{flex:1}.count,.page-info{color:#667085;font-size:14px}
-.page-btn{border:1px solid #d9dee5;background:#fff;color:#667085;border-radius:6px;padding:7px 12px;cursor:pointer}
-.page-select{padding:7px;border:1px solid #d9dee5;border-radius:5px}
-
-@media(max-width:1100px){
-  .menu{display:none}.formula-text{display:none}.extract{display:none}
-}
-@media(max-width:700px){
-  .title{font-size:15px}.badge{display:none}.actions .orange,.actions .blue{display:none}
-  .formula{height:auto;min-height:57px;padding:8px;flex-wrap:wrap}.search{width:45%}
-  .home{padding-top:50px}.upload{padding:30px 16px}.file-buttons{flex-direction:column}
-  .mapping-preview{grid-template-columns:repeat(2,1fr)}
-  .tabletop{padding:0 8px}.table-search{width:180px}
-  .bottom{padding:0 8px;gap:7px}.bottom-spacer{display:none}
-}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;color:#172033;background:#f7f9fb}
+button,input,select{font:inherit}.topbar{height:62px;background:#fff;border-bottom:1px solid #dfe3e8;display:flex;align-items:center;padding:0 10px;gap:11px;white-space:nowrap;overflow:hidden}
+.logo{width:42px;height:42px;background:#08a45b;border-radius:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px}.title{font-size:18px;font-weight:600}
+.badge{background:#dff7e9;color:#087b46;border-radius:7px;padding:6px 10px;font-size:13px}.menu{display:flex;gap:18px;font-size:14px;color:#344054;margin-left:4px}.menu span{cursor:pointer}
+.actions{margin-left:auto;display:flex;gap:8px}.btn{border:0;border-radius:6px;padding:10px 15px;font-weight:600;cursor:pointer}.green{background:#08a45b;color:#fff}.orange{background:#e88916;color:#fff}.blue{background:#4f86e5;color:#fff}.light{background:#fff;border:1px solid #d5dbe2;color:#344054}
+.formula{height:57px;background:#fff;border-bottom:1px solid #dfe3e8;display:flex;align-items:center;gap:9px;padding:0 9px;overflow:hidden}.search{height:32px;width:395px;border:1px solid #d5dbe2;border-radius:5px;padding:0 12px;outline:none}.divider{height:25px;width:1px;background:#d9dde2;flex:none}.namebox{height:30px;width:68px;border:1px solid #d5dbe2;border-radius:5px;text-align:center;font-weight:bold}.fx{font-weight:bold;color:#777}.formula-text{height:32px;line-height:32px;flex:1;min-width:180px;border:1px solid #d5dbe2;border-radius:5px;padding:0 12px;font-family:monospace;font-size:13px;overflow:hidden}.extract{font-size:13px;white-space:nowrap}.tag{padding:6px 8px;border-radius:5px;font-weight:bold;font-size:13px}.ta{background:#dbeafe;color:#2563eb}.ty{background:#ede9fe;color:#7c3aed}.tl{background:#fef3c7;color:#b45309}.tc{background:#d1fae5;color:#047857}.tr{background:#fee2e2;color:#dc2626}.tah{background:#cffafe;color:#0891b2}
+.mappingbar{display:none;height:44px;background:#eafff4;border-bottom:1px solid #ccebdd;align-items:center;gap:8px;padding:0 18px;white-space:nowrap;overflow:auto;font-size:14px}.map-pill{background:#fff;border:1px solid #a9e1c4;color:#075d3b;padding:6px 10px;border-radius:5px;font-family:monospace}.map-title{font-weight:bold}.custom{margin-left:auto;color:#075d3b}
+.home{min-height:calc(100vh - 119px);padding:90px 0 40px}.upload{width:min(790px,90%);margin:auto;background:#fff;border:2px dashed #cbd5df;border-radius:20px;padding:46px;text-align:center;box-shadow:0 2px 10px #0000000d}.upload.drag{border-color:#08a45b;background:#f2fff8}
+.cloud{width:76px;height:76px;border-radius:50%;background:#d9fae9;color:#08a45b;margin:auto;display:flex;align-items:center;justify-content:center;font-size:38px}.upload h2{font-size:25px;margin:18px 0 10px}.upload p{color:#718096;line-height:1.55;font-size:16px;margin:0 auto 24px;max-width:650px}.upload p b{color:#08a45b}.file-buttons{display:flex;justify-content:center;gap:14px}.select{font-size:17px;padding:14px 28px}.sample{font-size:17px;padding:14px 22px}
+.mapping-preview{border-top:1px solid #edf0f3;margin-top:28px;padding-top:20px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.mapping-preview div{border:1px solid #e1e5ea;border-radius:6px;padding:9px 3px;font-size:12px;color:#64748b}.mapping-preview b{display:block;font-size:14px;margin-bottom:5px}.status{width:min(790px,90%);margin:14px auto;text-align:center;color:#667085;font-size:14px}.progress{display:none;width:min(790px,90%);height:7px;background:#e5e7eb;border-radius:8px;margin:10px auto;overflow:hidden}.bar{height:100%;width:0;background:#08a45b}
+.data{display:none;width:100%;background:#fff}.tabletop{height:49px;border-bottom:1px solid #dfe3e8;display:flex;align-items:center;padding:0 18px;gap:10px}.table-search{height:32px;width:300px;border:1px solid #d5dbe2;border-radius:5px;padding:0 12px}.file-chip{margin-left:auto;background:#effcf5;color:#087b46;border:1px solid #b9ead0;border-radius:18px;padding:7px 13px;font-size:14px}.tablewrap{overflow:auto;height:calc(100vh - 218px);min-height:350px}
+table{border-collapse:collapse;width:max-content;min-width:100%;table-layout:auto}th,td{border-right:1px solid #dfe3e8;border-bottom:1px solid #dfe3e8;padding:10px 14px;text-align:left;white-space:nowrap;font-size:14px;height:42px}th{background:#f8fafc;color:#1f2937;position:sticky;top:0;z-index:3;font-weight:500}th:first-child,td:first-child{position:sticky;left:0;z-index:4;background:#f8fafc;width:54px;text-align:center;color:#344054}.th-main{font-weight:600}.th-sub{color:#667085;font-weight:400}.th-tools{float:right;color:#98a2b3;margin-left:18px}.empty{text-align:center;color:#667085;padding:50px}.bottom{height:58px;background:#fff;border-top:1px solid #dfe3e8;display:flex;align-items:center;padding:0 18px;gap:16px}.bottom-spacer{flex:1}.count,.page-info{color:#667085;font-size:14px}.page-btn{border:1px solid #d9dee5;background:#fff;color:#667085;border-radius:6px;padding:7px 12px;cursor:pointer}.page-select{padding:7px;border:1px solid #d9dee5;border-radius:5px}
+@media(max-width:1100px){.menu{display:none}.formula-text{display:none}.extract{display:none}}@media(max-width:700px){.title{font-size:15px}.badge{display:none}.actions .orange,.actions .blue{display:none}.formula{height:auto;min-height:57px;padding:8px;flex-wrap:wrap}.search{width:45%}.home{padding-top:50px}.upload{padding:30px 16px}.file-buttons{flex-direction:column}.mapping-preview{grid-template-columns:repeat(2,1fr)}.tabletop{padding:0 8px}.table-search{width:180px}.bottom{padding:0 8px;gap:7px}.bottom-spacer{display:none}}
 </style>
 </head>
-
 <body>
-
 <header class="topbar">
-  <div class="logo">▦</div>
-  <div class="title">Google Sheets - CSV Extractor</div>
-  <div class="badge">Columns A, Y, L, C, R, AH</div>
-
-  <nav class="menu">
-    <span>📁 File</span>
-    <span>☷ Column Mapper</span>
-    <span onclick="copyData()">📋 Copy Data Only</span>
-    <span onclick="downloadCSV()">⬇ Export CSV</span>
-    <span onclick="downloadExcel()">▣ Export Excel</span>
-    <span onclick="loadSample()">🛠 Sample Data</span>
-  </nav>
-
-  <div class="actions">
-    <button class="btn green" onclick="openFile()">☁ Upload File</button>
-    <button class="btn orange" onclick="copyData()">▣ Copy Data (No Headers)</button>
-    <button class="btn blue" onclick="downloadCSV()">⬇ Download</button>
-  </div>
+<div class="logo">▦</div><div class="title">Google Sheets - CSV Extractor</div><div class="badge">Columns A, Y, L, C, R, AH</div>
+<nav class="menu"><span>📁 File</span><span>☷ Column Mapper</span><span onclick="copyData()">📋 Copy Data Only</span><span onclick="downloadCSV()">⬇ Export CSV</span><span onclick="downloadExcel()">▣ Export Excel</span><span onclick="loadSample()">🛠 Sample Data</span></nav>
+<div class="actions"><button class="btn green" onclick="openFile()">☁ Upload File</button><button class="btn orange" onclick="copyData()">▣ Copy Data (No Headers)</button><button class="btn blue" onclick="downloadCSV()">⬇ Download</button></div>
 </header>
 
 <div class="formula">
-  <input id="search" class="search" placeholder="⌕  Search extracted data..." oninput="searchChanged()">
-  <div class="divider"></div>
-  <input class="namebox" value="A1" readonly>
-  <span class="fx">ƒx</span>
-  <div id="formulaText" class="formula-text">Select a cell or upload a file to view data</div>
-  <div class="divider"></div>
-  <label style="white-space:nowrap;font-size:13px">
-    <input type="checkbox" id="headers"> Include headers on copy
-  </label>
-  <span class="extract">Extracted:</span>
-  <span class="tag ta">A</span><span class="tag ty">Y</span><span class="tag tl">L</span>
-  <span class="tag tc">C</span><span class="tag tr">R</span><span class="tag tah">AH</span>
+<input id="search" class="search" placeholder="⌕  Search extracted data..." oninput="searchChanged()"><div class="divider"></div><input class="namebox" value="A1" readonly><span class="fx">ƒx</span>
+<div id="formulaText" class="formula-text">Select a cell or upload a file to view data</div><div class="divider"></div>
+<label style="white-space:nowrap;font-size:13px"><input type="checkbox" id="headers"> Include headers on copy</label><span class="extract">Extracted:</span>
+<span class="tag ta">A</span><span class="tag ty">Y</span><span class="tag tl">L</span><span class="tag tc">C</span><span class="tag tr">R</span><span class="tag tah">AH</span>
 </div>
 
-<div id="mappingBar" class="mappingbar">
-  <span class="map-title">▦ Column Mapping Active:</span>
-  <span class="map-pill" id="mA"></span>
-  <span class="map-pill" id="mY"></span>
-  <span class="map-pill" id="mL"></span>
-  <span class="map-pill" id="mC"></span>
-  <span class="map-pill" id="mR"></span>
-  <span class="map-pill" id="mAH"></span>
-  <span class="custom">⚙ Customize Column Mapping</span>
-</div>
+<div id="mappingBar" class="mappingbar"><span class="map-title">▦ Column Mapping Active:</span><span class="map-pill" id="mA"></span><span class="map-pill" id="mY"></span><span class="map-pill" id="mL"></span><span class="map-pill" id="mC"></span><span class="map-pill" id="mR"></span><span class="map-pill" id="mAH"></span><span class="custom">⚙ Customize Column Mapping</span></div>
 
 <main id="home" class="home">
-  <section id="upload" class="upload">
-    <div class="cloud">☁</div>
-    <h2>Upload CSV or ZIP File</h2>
-    <p>
-      Drag and drop your <b>.csv</b> or <b>.zip</b> archive
-      (containing CSV file(s)) to extract columns
-      <b>A, Y, L, C, R, AH</b> into Google Sheet format.
-    </p>
-
-    <div class="file-buttons">
-      <button class="btn green select" onclick="openFile()">▣ Select File</button>
-      <button class="btn light sample" onclick="loadSample()">🛠 Load Sample Data</button>
-    </div>
-
-    <div class="mapping-preview">
-      <div><b style="color:#2563eb">Col A</b>1st Col / A</div>
-      <div><b style="color:#7c3aed">Col Y</b>25th Col / Y</div>
-      <div><b style="color:#b45309">Col L</b>12th Col / L</div>
-      <div><b style="color:#047857">Col C</b>3rd Col / C</div>
-      <div><b style="color:#dc2626">Col R</b>18th Col / R</div>
-      <div><b style="color:#0891b2">Col AH</b>34th Col / AH</div>
-    </div>
-  </section>
-
-  <input id="file" type="file" accept=".csv,.txt,.zip" hidden>
-  <div id="progress" class="progress"><div id="bar" class="bar"></div></div>
-  <div id="status" class="status">No file selected</div>
+<section id="upload" class="upload"><div class="cloud">☁</div><h2>Upload CSV or ZIP File</h2>
+<p>Drag and drop your <b>.csv</b> or <b>.zip</b> archive (containing CSV file(s)) to extract columns <b>A, Y, L, C, R, AH</b> into Google Sheet format.</p>
+<div class="file-buttons"><button class="btn green select" onclick="openFile()">▣ Select File</button><button class="btn light sample" onclick="loadSample()">🛠 Load Sample Data</button></div>
+<div class="mapping-preview"><div><b style="color:#2563eb">Col A</b>1st Col / A</div><div><b style="color:#7c3aed">Col Y</b>25th Col / Y</div><div><b style="color:#b45309">Col L</b>12th Col / L</div><div><b style="color:#047857">Col C</b>3rd Col / C</div><div><b style="color:#dc2626">Col R</b>18th Col / R</div><div><b style="color:#0891b2">Col AH</b>34th Col / AH</div></div>
+</section>
+<input id="file" type="file" accept=".csv,.txt,.zip" hidden><div id="progress" class="progress"><div id="bar" class="bar"></div></div><div id="status" class="status">No file selected</div>
 </main>
 
-<section id="data" class="data">
-
-  <div class="tabletop">
-    <input id="tableSearch" class="table-search" placeholder="⌕ Search extracted data..." oninput="searchChanged()">
-    <label style="font-size:13px;white-space:nowrap">
-      <input type="checkbox" id="headers2" onchange="syncHeaders()"> Include headers on copy
-    </label>
-    <div id="fileChip" class="file-chip">✓ file</div>
-  </div>
-
-  <div class="tablewrap">
-    <table>
-      <thead><tr id="headRow"></tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-
-  <div class="bottom">
-    <span class="count">Showing <b id="shown">0</b> of <b id="totalRows">0</b> rows</span>
-    <span class="count">Per Page:</span>
-    <select id="size" class="page-select" onchange="changeSize()">
-      <option value="50">50</option>
-      <option value="100">100</option>
-      <option value="25">25</option>
-      <option value="250">250</option>
-      <option value="500">500</option>
-    </select>
-
-    <div class="bottom-spacer"></div>
-
-    <button class="page-btn" onclick="prev()">‹</button>
-    <span id="page" class="page-info">Page 1 of 1</span>
-    <button class="page-btn" onclick="next()">›</button>
-
-    <button class="btn orange" onclick="copyData()">▣ Copy Data (No Headers)</button>
-    <button class="btn green" onclick="downloadCSV()">▣ Download CSV</button>
-    <button class="btn green" onclick="downloadExcel()">▣ Download Excel</button>
-  </div>
-</section>
+<section id="data" class="data"><div class="tabletop"><input id="tableSearch" class="table-search" placeholder="⌕ Search extracted data..." oninput="searchChanged()"><label style="font-size:13px;white-space:nowrap"><input type="checkbox" id="headers2" onchange="syncHeaders()"> Include headers on copy</label><div id="fileChip" class="file-chip">✓ file</div></div>
+<div class="tablewrap"><table><thead><tr id="headRow"></tr></thead><tbody id="tbody"></tbody></table></div>
+<div class="bottom"><span class="count">Showing <b id="shown">0</b> of <b id="totalRows">0</b> rows</span><span class="count">Per Page:</span><select id="size" class="page-select" onchange="changeSize()"><option value="50">50</option><option value="100">100</option><option value="25">25</option><option value="250">250</option><option value="500">500</option></select><div class="bottom-spacer"></div><button class="page-btn" onclick="prev()">‹</button><span id="page" class="page-info">Page 1 of 1</span><button class="page-btn" onclick="next()">›</button><button class="btn orange" onclick="copyData()">▣ Copy Data (No Headers)</button><button class="btn green" onclick="downloadCSV()">▣ Download CSV</button><button class="btn green" onclick="downloadExcel()">▣ Download Excel</button></div></section>
 
 <script>
 /*
-  IMPORTANT:
-  Source columns are fixed:
-  A  = 1st column  = index 0
-  Y  = 25th column = index 24
-  L  = 12th column = index 11
-  C  = 3rd column  = index 2
-  R  = 18th column = index 17
-  AH = 34th column = index 33
-
-  The first row of every CSV is treated as a HEADER and is never shown
-  as a data row.
+  100% LOCAL FILE PROCESSING
+  No PapaParse, no JSZip, no CDN, no fetch, no XHR, no WebSocket, no API.
+  CSV and ZIP are processed inside this browser.
 */
+const SOURCE_INDEX=[0,24,11,2,17,33], OUTPUT_NAMES=['A','Y','L','C','R','AH'];
+let originalHeader=[],originalRows=[],extracted=[],currentPage=1,pageSize=50,sourceName='';
+const fileInput=document.getElementById('file'),uploadBox=document.getElementById('upload');
 
-const SOURCE_INDEX = [0,24,11,2,17,33];
-const OUTPUT_NAMES = ['A','Y','L','C','R','AH'];
-
-let originalHeader = [];
-let originalRows = [];
-let extracted = [];
-let currentPage = 1;
-let pageSize = 50;
-let sourceName = '';
-
-const fileInput = document.getElementById('file');
-const uploadBox = document.getElementById('upload');
-
-function openFile(){
-  fileInput.click();
-}
-
-fileInput.addEventListener('change', function(e){
-  if(e.target.files && e.target.files[0]){
-    processFile(e.target.files[0]);
-  }
-});
-
-uploadBox.addEventListener('dragover', function(e){
-  e.preventDefault();
-  uploadBox.classList.add('drag');
-});
-
-uploadBox.addEventListener('dragleave', function(){
-  uploadBox.classList.remove('drag');
-});
-
-uploadBox.addEventListener('drop', function(e){
-  e.preventDefault();
-  uploadBox.classList.remove('drag');
-  if(e.dataTransfer.files && e.dataTransfer.files[0]){
-    processFile(e.dataTransfer.files[0]);
-  }
-});
+function openFile(){fileInput.click()}
+fileInput.addEventListener('change',e=>{if(e.target.files&&e.target.files[0])processFile(e.target.files[0])});
+uploadBox.addEventListener('dragover',e=>{e.preventDefault();uploadBox.classList.add('drag')});
+uploadBox.addEventListener('dragleave',()=>uploadBox.classList.remove('drag'));
+uploadBox.addEventListener('drop',e=>{e.preventDefault();uploadBox.classList.remove('drag');if(e.dataTransfer.files&&e.dataTransfer.files[0])processFile(e.dataTransfer.files[0])});
 
 async function processFile(file){
-  sourceName = file.name;
-  originalHeader = [];
-  originalRows = [];
-  extracted = [];
-  currentPage = 1;
-  setStatus('Reading ' + file.name + ' ...');
-
+  sourceName=file.name;originalHeader=[];originalRows=[];extracted=[];currentPage=1;
+  setStatus('Reading '+file.name+' ...');
   try{
-    if(file.name.toLowerCase().endsWith('.zip')){
-      await processZip(file);
+    if(/\.zip$/i.test(file.name))await processZipLocal(file);
+    else await processCsvLocal(await file.arrayBuffer(),'CSV');
+  }catch(e){
+    console.error(e);setStatus('Error: '+e.message);alert('File could not be processed.\n\n'+e.message);
+  }
+}
+
+/* ---------- CSV parser: local, no library ---------- */
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,'');
+  const rows=[];let row=[],field='',quoted=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(quoted){
+      if(ch==='"'){
+        if(text[i+1]==='"'){field+='"';i++}else quoted=false;
+      }else field+=ch;
     }else{
-      await processSingleCsv(file);
+      if(ch==='"'&&field.length===0)quoted=true;
+      else if(ch===','){row.push(field);field=''}
+      else if(ch==='\n'){row.push(field);rows.push(row);row=[];field=''}
+      else if(ch==='\r'){if(text[i+1]==='\n')i++;row.push(field);rows.push(row);row=[];field=''}
+      else field+=ch;
     }
-  }catch(err){
-    console.error(err);
-    setStatus('Error: ' + (err && err.message ? err.message : err));
-    alert('File could not be processed.\\n\\n' + (err && err.message ? err.message : err));
   }
+  if(field!==''||row.length){row.push(field);rows.push(row)}
+  return rows.filter(r=>r.some(v=>String(v).trim()!==''));
 }
 
-function parseCSVText(text){
-  return Papa.parse(text, {
-    header:false,
-    skipEmptyLines:true,
-    dynamicTyping:false
-  });
-}
-
-function processSingleCsv(file){
-  return new Promise(function(resolve,reject){
-    Papa.parse(file,{
-      header:false,
-      skipEmptyLines:true,
-      dynamicTyping:false,
-      worker:true,
-      complete:function(result){
-        if(result.errors && result.errors.length){
-          console.warn('CSV parse warnings:', result.errors);
-        }
-
-        const rows = result.data || [];
-
-        if(!rows.length){
-          reject(new Error('The CSV file is empty.'));
-          return;
-        }
-
-        originalHeader = rows[0];
-        originalRows = rows.slice(1);
-
-        extractAndShow();
-
-        setStatus('CSV loaded successfully | Data rows: ' + extracted.length);
-        resolve();
-      },
-      error:reject
-    });
-  });
-}
-
-async function processZip(file){
-  showProgress(5);
-  setStatus('Opening ZIP file...');
-
-  const zip = await JSZip.loadAsync(file);
-
-  const csvFiles = Object.values(zip.files).filter(function(entry){
-    return !entry.dir && /\.(csv|txt)$/i.test(entry.name);
-  });
-
-  if(!csvFiles.length){
-    throw new Error('No CSV file found inside this ZIP.');
-  }
-
-  let allRows = [];
-  let firstHeader = null;
-
-  for(let i=0;i<csvFiles.length;i++){
-    const entry = csvFiles[i];
-
-    setStatus(
-      'Reading ' + entry.name +
-      ' (' + (i+1) + ' of ' + csvFiles.length + ')'
-    );
-
-    const text = await entry.async('string');
-    const result = parseCSVText(text);
-    const rows = result.data || [];
-
-    if(!rows.length){
-      continue;
-    }
-
-    if(firstHeader === null){
-      firstHeader = rows[0];
-    }
-
-    // NEVER add the header row to data.
-    allRows = allRows.concat(rows.slice(1));
-
-    setProgress(5 + ((i+1)/csvFiles.length)*90);
-  }
-
-  if(firstHeader === null){
-    throw new Error('CSV files inside the ZIP are empty.');
-  }
-
-  originalHeader = firstHeader;
-  originalRows = allRows;
-
+async function processCsvLocal(buffer,label){
+  const text=new TextDecoder('utf-8').decode(buffer);
+  const rows=parseCSV(text);
+  if(!rows.length)throw new Error('The CSV file is empty.');
+  originalHeader=rows[0];
+  originalRows=rows.slice(1);
   extractAndShow();
+  setStatus(label+' loaded successfully | Data rows: '+extracted.length);
+}
 
-  setStatus(
-    'ZIP processed successfully | ' +
-    csvFiles.length + ' CSV file(s) | Data rows: ' +
-    extracted.length
-  );
+/* ---------- ZIP reader: local, no JSZip ---------- */
+function u16(v,o){return v.getUint16(o,true)}
+function u32(v,o){return v.getUint32(o,true)}
+function findEOCD(bytes){
+  for(let i=bytes.length-22;i>=Math.max(0,bytes.length-22-65535);i--){
+    if(bytes[i]===0x50&&bytes[i+1]===0x4b&&bytes[i+2]===0x05&&bytes[i+3]===0x06)return i;
+  }
+  return -1;
+}
+function decodeName(bytes){
+  return new TextDecoder('utf-8',{fatal:false}).decode(bytes);
+}
+async function inflateRaw(bytes){
+  if(typeof DecompressionStream==='undefined')throw new Error('This browser does not support local ZIP decompression. Please use the latest Chrome or Edge.');
+  const ds=new DecompressionStream('deflate-raw');
+  const stream=new Blob([bytes]).stream().pipeThrough(ds);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function readZipEntries(buffer){
+  const bytes=new Uint8Array(buffer),dv=new DataView(buffer),eocd=findEOCD(bytes);
+  if(eocd<0)throw new Error('Invalid ZIP file: ZIP directory not found.');
+  const count=u16(dv,eocd+10),cdOffset=u32(dv,eocd+16);
+  let p=cdOffset,entries=[];
+  for(let n=0;n<count;n++){
+    if(u32(dv,p)!==0x02014b50)throw new Error('Invalid ZIP central directory.');
+    const method=u16(dv,p+10),compressedSize=u32(dv,p+20),nameLen=u16(dv,p+28),extraLen=u16(dv,p+30),commentLen=u16(dv,p+32),localOffset=u32(dv,p+42);
+    const name=decodeName(bytes.slice(p+46,p+46+nameLen));
+    entries.push({name,method,compressedSize,localOffset});
+    p+=46+nameLen+extraLen+commentLen;
+  }
+  const out=[];
+  for(const entry of entries){
+    if(!/\.(csv|txt)$/i.test(entry.name))continue;
+    const lp=entry.localOffset;
+    if(u32(dv,lp)!==0x04034b50)throw new Error('Invalid ZIP local file header.');
+    const nameLen=u16(dv,lp+26),extraLen=u16(dv,lp+28),start=lp+30+nameLen+extraLen;
+    const comp=bytes.slice(start,start+entry.compressedSize);
+    let data;
+    if(entry.method===0)data=comp;
+    else if(entry.method===8)data=await inflateRaw(comp);
+    else throw new Error('ZIP uses an unsupported compression method for '+entry.name+'.');
+    out.push({name:entry.name,data});
+  }
+  return out;
+}
 
-  setProgress(100);
-
-  setTimeout(function(){
-    document.getElementById('progress').style.display='none';
-  },800);
+async function processZipLocal(file){
+  showProgress(5);setStatus('Reading ZIP locally...');
+  const buffer=await file.arrayBuffer();
+  const entries=await readZipEntries(buffer);
+  if(!entries.length)throw new Error('No CSV file found inside this ZIP.');
+  let allRows=[],header=null;
+  for(let i=0;i<entries.length;i++){
+    setStatus('Reading '+entries[i].name+' ('+(i+1)+' of '+entries.length+')');
+    const text=new TextDecoder('utf-8').decode(entries[i].data);
+    const rows=parseCSV(text);
+    if(rows.length){
+      if(header===null)header=rows[0];
+      allRows=allRows.concat(rows.slice(1)); // skip header in EVERY CSV
+    }
+    setProgress(5+((i+1)/entries.length)*90);
+  }
+  if(header===null)throw new Error('CSV files inside the ZIP are empty.');
+  originalHeader=header;originalRows=allRows;
+  extractAndShow();
+  setStatus('ZIP processed successfully | '+entries.length+' CSV file(s) | Data rows: '+extracted.length);
+  setProgress(100);setTimeout(()=>document.getElementById('progress').style.display='none',800);
 }
 
 function extractAndShow(){
-  extracted = originalRows.map(function(row){
-    return SOURCE_INDEX.map(function(index){
-      return row[index] === undefined ? '' : row[index];
-    });
-  });
-
-  updateHeaders();
-  updateMappingBar();
-
+  extracted=originalRows.map(row=>SOURCE_INDEX.map(i=>row[i]===undefined?'':row[i]));
+  updateHeaders();updateMappingBar();
   document.getElementById('home').style.display='none';
   document.getElementById('data').style.display='block';
   document.getElementById('mappingBar').style.display='flex';
-  document.getElementById('fileChip').textContent='✓ ' + sourceName;
-  document.getElementById('formulaText').textContent='Data extracted from ' + sourceName;
-
+  document.getElementById('fileChip').textContent='✓ '+sourceName;
+  document.getElementById('formulaText').textContent='Data extracted from '+sourceName;
   render();
 }
-
 function columnName(index){
-  if(originalHeader && originalHeader[index] !== undefined && String(originalHeader[index]).trim() !== ''){
-    return String(originalHeader[index]).trim();
-  }
-  return OUTPUT_NAMES[SOURCE_INDEX.indexOf(index)] || '';
+  if(originalHeader[index]!==undefined&&String(originalHeader[index]).trim()!=='')return String(originalHeader[index]).trim();
+  return OUTPUT_NAMES[SOURCE_INDEX.indexOf(index)]||'';
 }
-
 function updateHeaders(){
-  const headRow = document.getElementById('headRow');
-
-  let html = '<th>#</th>';
-
-  SOURCE_INDEX.forEach(function(index,i){
-    const name = columnName(index);
-    html += '<th>' +
-      '<span class="th-main">' + escapeHtml(OUTPUT_NAMES[i]) + '</span> ' +
-      '<span class="th-sub">(' + escapeHtml(name) + ')</span>' +
-      '<span class="th-tools">◧⌃</span>' +
-      '</th>';
-  });
-
-  headRow.innerHTML = html;
+  let html='<th>#</th>';
+  SOURCE_INDEX.forEach((index,i)=>{html+='<th><span class="th-main">'+escapeHtml(OUTPUT_NAMES[i])+'</span> <span class="th-sub">('+escapeHtml(columnName(index))+')</span><span class="th-tools">◧⌃</span></th>'});
+  document.getElementById('headRow').innerHTML=html;
 }
-
 function updateMappingBar(){
-  SOURCE_INDEX.forEach(function(index,i){
-    const id = 'm' + OUTPUT_NAMES[i];
-    const el = document.getElementById(id);
-    if(el){
-      el.textContent = 'Col ' + OUTPUT_NAMES[i] + ' → ' + columnName(index);
-    }
-  });
+  SOURCE_INDEX.forEach((index,i)=>{const e=document.getElementById('m'+OUTPUT_NAMES[i]);if(e)e.textContent='Col '+OUTPUT_NAMES[i]+' → '+columnName(index)});
 }
-
 function getFiltered(){
-  const q1 = document.getElementById('search').value.trim().toLowerCase();
-  const q2 = document.getElementById('tableSearch').value.trim().toLowerCase();
-  const q = q1 || q2;
-
-  if(!q) return extracted;
-
-  return extracted.filter(function(row){
-    return row.some(function(value){
-      return String(value).toLowerCase().includes(q);
-    });
-  });
+  const q=(document.getElementById('search').value.trim()||document.getElementById('tableSearch').value.trim()).toLowerCase();
+  if(!q)return extracted;
+  return extracted.filter(r=>r.some(v=>String(v).toLowerCase().includes(q)));
 }
-
 function searchChanged(){
-  const top = document.getElementById('search');
-  const table = document.getElementById('tableSearch');
-
-  if(document.activeElement === top){
-    table.value = top.value;
-  }else{
-    top.value = table.value;
-  }
-
-  currentPage=1;
-  render();
+  const a=document.getElementById('search'),b=document.getElementById('tableSearch');
+  if(document.activeElement===a)b.value=a.value;else a.value=b.value;
+  currentPage=1;render();
 }
-
 function render(){
-  const rows = getFiltered();
-  const totalPages = Math.max(1, Math.ceil(rows.length/pageSize));
-
-  if(currentPage > totalPages) currentPage=totalPages;
-
-  const start=(currentPage-1)*pageSize;
-  const pageRows=rows.slice(start,start+pageSize);
-  const tbody=document.getElementById('tbody');
-
+  const rows=getFiltered(),total=Math.max(1,Math.ceil(rows.length/pageSize));
+  if(currentPage>total)currentPage=total;
+  const start=(currentPage-1)*pageSize,pageRows=rows.slice(start,start+pageSize),tbody=document.getElementById('tbody');
   tbody.innerHTML='';
-
-  if(!pageRows.length){
-    tbody.innerHTML='<tr><td colspan="7" class="empty">No data found</td></tr>';
-  }else{
-    pageRows.forEach(function(row,i){
-      const tr=document.createElement('tr');
-
-      const n=document.createElement('td');
-      n.textContent=String(start+i+1);
-      tr.appendChild(n);
-
-      row.forEach(function(value){
-        const td=document.createElement('td');
-        td.textContent=value;
-        tr.appendChild(td);
-      });
-
-      tbody.appendChild(tr);
-    });
-  }
-
-  document.getElementById('shown').textContent=pageRows.length;
-  document.getElementById('totalRows').textContent=rows.length;
-  document.getElementById('page').textContent='Page '+currentPage+' of '+totalPages;
+  if(!pageRows.length)tbody.innerHTML='<tr><td colspan="7" class="empty">No data found</td></tr>';
+  else pageRows.forEach((r,i)=>{const tr=document.createElement('tr');const n=document.createElement('td');n.textContent=start+i+1;tr.appendChild(n);r.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});tbody.appendChild(tr)});
+  document.getElementById('shown').textContent=pageRows.length;document.getElementById('totalRows').textContent=rows.length;document.getElementById('page').textContent='Page '+currentPage+' of '+total;
 }
-
-function syncHeaders(){
-  document.getElementById('headers').checked =
-    document.getElementById('headers2').checked;
-}
-
+function syncHeaders(){document.getElementById('headers').checked=document.getElementById('headers2').checked}
 async function copyData(){
-  if(!extracted.length){
-    alert('No data available.');
-    return;
-  }
-
-  let rows=extracted;
-
-  if(document.getElementById('headers').checked ||
-     document.getElementById('headers2').checked){
-    rows=[OUTPUT_NAMES].concat(rows);
-  }
-
-  const text=rows.map(function(row){
-    return row.map(function(value){
-      return String(value)
-        .replace(/\t/g,' ')
-        .replace(/\r?\n/g,' ');
-    }).join('\t');
-  }).join('\n');
-
-  try{
-    await navigator.clipboard.writeText(text);
-    alert('Data copied. Now paste it directly into Google Sheets.');
-  }catch(e){
-    const ta=document.createElement('textarea');
-    ta.value=text;
-    ta.style.position='fixed';
-    ta.style.left='-9999px';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
-    alert('Data copied. Now paste it into Google Sheets.');
-  }
+  if(!extracted.length)return alert('No data available.');
+  let rows=extracted;if(document.getElementById('headers').checked||document.getElementById('headers2').checked)rows=[OUTPUT_NAMES,...rows];
+  const text=rows.map(r=>r.map(v=>String(v).replace(/\t/g,' ').replace(/\r?\n/g,' ')).join('\t')).join('\n');
+  try{await navigator.clipboard.writeText(text)}catch(e){const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}
+  alert('Data copied. Now paste it directly into Google Sheets.');
 }
-
+function csvEscape(v){v=String(v??'');return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
 function downloadCSV(){
-  if(!extracted.length){
-    alert('No data available.');
-    return;
-  }
-
-  let rows=extracted;
-
-  if(document.getElementById('headers').checked ||
-     document.getElementById('headers2').checked){
-    rows=[OUTPUT_NAMES].concat(rows);
-  }
-
-  const csv=Papa.unparse(rows);
-
-  downloadFile(
-    '\ufeff'+csv,
-    'extracted_data.csv',
-    'text/csv;charset=utf-8'
-  );
+  if(!extracted.length)return alert('No data available.');
+  let rows=extracted;if(document.getElementById('headers').checked||document.getElementById('headers2').checked)rows=[OUTPUT_NAMES,...rows];
+  downloadFile('\ufeff'+rows.map(r=>r.map(csvEscape).join(',')).join('\r\n'),'extracted_data.csv','text/csv;charset=utf-8');
 }
-
 function downloadExcel(){
-  if(!extracted.length){
-    alert('No data available.');
-    return;
-  }
-
-  let rows=extracted;
-
-  if(document.getElementById('headers').checked ||
-     document.getElementById('headers2').checked){
-    rows=[OUTPUT_NAMES].concat(rows);
-  }
-
-  const html =
-    '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table>' +
-    rows.map(function(row){
-      return '<tr>' +
-        row.map(function(value){
-          return '<td>' + escapeHtml(value) + '</td>';
-        }).join('') +
-        '</tr>';
-    }).join('') +
-    '</table></body></html>';
-
-  downloadFile(
-    html,
-    'extracted_data.xls',
-    'application/vnd.ms-excel'
-  );
+  if(!extracted.length)return alert('No data available.');
+  let rows=extracted;if(document.getElementById('headers').checked||document.getElementById('headers2').checked)rows=[OUTPUT_NAMES,...rows];
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body><table>'+rows.map(r=>'<tr>'+r.map(v=>'<td>'+escapeHtml(v)+'</td>').join('')+'</tr>').join('')+'</table></body></html>';
+  downloadFile(html,'extracted_data.xls','application/vnd.ms-excel');
 }
-
-function downloadFile(content,name,type){
-  const blob=new Blob([content],{type:type});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(function(){URL.revokeObjectURL(url)},1000);
-}
-
-function prev(){
-  if(currentPage>1){
-    currentPage--;
-    render();
-  }
-}
-
-function next(){
-  const total=Math.max(1,Math.ceil(getFiltered().length/pageSize));
-  if(currentPage<total){
-    currentPage++;
-    render();
-  }
-}
-
-function changeSize(){
-  pageSize=Number(document.getElementById('size').value);
-  currentPage=1;
-  render();
-}
-
-function setStatus(text){
-  document.getElementById('status').textContent=text;
-}
-
-function showProgress(value){
-  document.getElementById('progress').style.display='block';
-  setProgress(value);
-}
-
-function setProgress(value){
-  document.getElementById('bar').style.width =
-    Math.max(0,Math.min(100,value))+'%';
-}
-
-function escapeHtml(value){
-  return String(value)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#039;');
-}
+function downloadFile(content,name,type){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function prev(){if(currentPage>1){currentPage--;render()}}
+function next(){const t=Math.max(1,Math.ceil(getFiltered().length/pageSize));if(currentPage<t){currentPage++;render()}}
+function changeSize(){pageSize=Number(document.getElementById('size').value);currentPage=1;render()}
+function setStatus(t){document.getElementById('status').textContent=t}
+function showProgress(v){document.getElementById('progress').style.display='block';setProgress(v)}
+function setProgress(v){document.getElementById('bar').style.width=Math.max(0,Math.min(100,v))+'%'}
+function escapeHtml(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
 
 function loadSample(){
-  const header=new Array(34).fill('');
-  header[0]='Name';
-  header[2]='C';
-  header[11]='Total';
-  header[17]='Lineitem name';
-  header[24]='Billing Name';
-  header[33]='Billing Phone';
-
+  const header=new Array(34).fill('');header[0]='Name';header[2]='C';header[11]='Total';header[17]='Lineitem name';header[24]='Billing Name';header[33]='Billing Phone';
   const rows=[];
-
-  for(let i=0;i<50;i++){
-    const r=new Array(34).fill('');
-    r[0]='MA'+(34079+i);
-    r[24]=['Varsha verma','Vasavi Chitrali','Sudarashan Chitukula','Aruna Thorat'][i%4];
-    r[11]=(1309+i*10).toFixed(2);
-    r[2]=(i===2?'x':'');
-    r[17]='Devayani Kanchipuram Silk Saree';
-    r[33]='97800000'+String(i+1).padStart(2,'0');
-    rows.push(r);
-  }
-
-  sourceName='Sample Data';
-  originalHeader=header;
-  originalRows=rows;
-  extractAndShow();
-  setStatus('Sample data loaded | Data rows: '+extracted.length);
+  for(let i=0;i<50;i++){const r=new Array(34).fill('');r[0]='MA'+(34079+i);r[24]=['Varsha verma','Vasavi Chitrali','Sudarashan Chitukula','Aruna Thorat'][i%4];r[11]=(1309+i*10).toFixed(2);r[2]=i===2?'x':'';r[17]='Devayani Kanchipuram Silk Saree';r[33]='97800000'+String(i+1).padStart(2,'0');rows.push(r)}
+  sourceName='Sample Data';originalHeader=header;originalRows=rows;extractAndShow();setStatus('Sample data loaded | Data rows: '+extracted.length);
 }
 </script>
-
 </body>
-</html>
-'''
+</html>'''
 
-out=Path("/mnt/data/index_complete_working.html")
+out=Path("/mnt/data/index_100_percent_local.html")
 out.write_text(html,encoding="utf-8")
-print("Created:",out)
+print(out)
 print("Lines:",len(html.splitlines()))
-print("First:",html.splitlines()[0])
-print("Last:",html.rstrip().splitlines()[-1])
